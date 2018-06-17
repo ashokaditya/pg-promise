@@ -1,16 +1,18 @@
 import * as pgPromise from '../../typescript/pg-promise';
+import {TSqlBuildConfig} from "../../typescript/pg-promise";
+import {TransactionMode} from "../../typescript/pg-promise";
 
-var utils = pgPromise.utils;
+const utils = pgPromise.utils;
 
-var pgp: pgPromise.IMain = pgPromise();
+const pgp: pgPromise.IMain = pgPromise();
 
-var utilsExtra = pgp.utils;
+const utilsExtra = pgp.utils;
 
 utils.camelize('');
 
 utils.camelizeVar('');
 
-var tree = utils.enumSql('', {recursive: true, ignoreErrors: true}, (file: string, name: string, path: string) => {
+const tree = utils.enumSql('', {recursive: true, ignoreErrors: true}, (file: string, name: string, path: string) => {
 
 });
 
@@ -18,7 +20,7 @@ utils.objectToCode(tree, (value, name, obj) => {
 
 });
 
-var a: string = utils.buildSqlModule();
+const a: string = utils.buildSqlModule();
 
 utils.buildSqlModule('');
 
@@ -36,3 +38,15 @@ utils.buildSqlModule({
         path: ''
     }
 });
+
+function testTaskArgs() {
+    const args = utils.taskArgs<{ first: string, second: boolean }>(arguments);
+    args.options.tag = 123;
+    args.options.mode = null;
+    args.options.cnd = new Error();
+
+    args.options.first = '';
+    args.options.second = true;
+}
+
+testTaskArgs();

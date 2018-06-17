@@ -1,70 +1,101 @@
 import * as pgPromise from '../../typescript/pg-promise';
-import {IArrayExt} from '../../typescript/pg-promise';
 
-var pgp: pgPromise.IMain = pgPromise();
+const pgp: pgPromise.IMain = pgPromise();
 
-var db: pgPromise.IDatabase<any> = pgp('connection');
+const db: pgPromise.IDatabase<any> = pgp('connection');
 
-var qrm = pgPromise.queryResult;
+const qrm = pgPromise.queryResult;
 
 db.query('', [], qrm.one | qrm.none)
     .then(data => {
-        var d1 = data.value;
-        var d2 = data[0].value;
+        const d1 = data.value;
+        const d2 = data[0].value;
     });
+
+db.any<number>('').then(data => {
+    const a: number = data[0];
+});
+
+db.any('').then(data => {
+    const a: number = data[0];
+});
 
 db.none('')
     .then(data => {
     });
 
 db.one('', [], value => {
+    return {value: 123};
 }, 'this')
     .then(data => {
-        var value = data.value;
+        const value = data.value;
     });
 
 db.oneOrNone('')
     .then(data => {
-        var value = data.value;
+        const value = data.value;
     });
 
 db.many('')
     .then(data => {
-        var value = data[0].ops;
-        var d: number = data.duration;
+        const value = data[0].ops;
     });
 
-db.result('', [], () => {
+db.result('', [], r => {
+    return r;
 }, 123)
     .then(data => {
-        var value = data.rows[0].name;
-        var d: number = data.duration;
+        const value = data.rows[0];
+    });
+
+db.multiResult('', [])
+    .then(data => {
+        const tableID = data[0].fields[0].tableID;
+    });
+
+db.multi('', [])
+    .then(data => {
+        const length = data[0].length;
     });
 
 db.map('', null, row => {
     return row.value;
 })
-    .then((data: IArrayExt<any>) => {
-        var d: number = data.duration;
+    .then((data: any[]) => {
+        const d: number = data[0];
     });
 
 db.each('', null, row => {
-    var v = row.value;
+    const v = row.value;
 })
-    .then((data: IArrayExt<any>) => {
-        var d: number = data.duration;
+    .then((data: any[]) => {
     });
 
 db.task(t => {
     return t.batch([
         t.one('')
     ])
-        .then((data: IArrayExt<any>) => {
-            var d: number = data.duration;
+        .then((data: any[]) => {
             return data;
         });
 })
     .then(data => {
-        var d1 = data.value;
-        var d2 = data[0].value;
+        const d1 = data.value;
+        const d2 = data[0].value;
     });
+
+function getQuery() {
+    return getNested;
+}
+
+function getNested(): string {
+    return 'SELECT 123;';
+}
+
+db.any(getQuery, 123);
+
+function getOne() {
+    return {text: ''};
+}
+
+db.one(getOne);

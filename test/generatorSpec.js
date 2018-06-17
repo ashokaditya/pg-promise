@@ -1,109 +1,106 @@
 'use strict';
 
-/*eslint-disable */
+const header = require('./db/header');
+const promise = header.defPromise;
 
-var header = require('./db/header');
-var promise = header.defPromise;
+const options = {
+    noWarnings: true,
+    promiseLib: promise
+};
 
-var options = {};
+const dbHeader = header(options);
+const db = dbHeader.db;
+const pgp = dbHeader.pgp;
 
-var dbHeader = header(options);
-var db = dbHeader.db;
-var pgp = dbHeader.pgp;
+describe('Generators - Positive', () => {
 
-describe("Generators - Positive", function () {
+    let result, tag, query;
 
-    var result, tag, query;
-
-    var tmTest = new pgp.txMode.TransactionMode({
+    const mode = new pgp.txMode.TransactionMode({
         tiLevel: pgp.txMode.isolationLevel.serializable
     });
 
-    function* myTX(t) {
-        return yield t.one("select 123 as value");
-    }
-
-    myTX.txMode = tmTest;
-
-    beforeEach(function (done) {
-        options.transact = function (e) {
+    beforeEach(done => {
+        options.transact = e => {
             tag = e.ctx.tag;
         };
-        options.query = function (e) {
+        options.query = e => {
             if (!query) {
                 query = e.query;
             }
         };
-        db.tx("Custom", myTX)
-            .then(function (data) {
+        db.tx({tag: 'Custom', mode}, function* (t) {
+            return yield t.one('select 123 as value');
+        })
+            .then(data => {
                 result = data;
                 done();
             });
     });
 
-    it("must resolve with the right value", function () {
+    it('must resolve with the right value', () => {
         expect(result && typeof result === 'object').toBeTruthy();
         expect(result.value).toBe(123);
-        expect(tag).toBe("Custom");
-        expect(query).toBe("begin isolation level serializable");
+        expect(tag).toBe('Custom');
+        expect(query).toBe('begin isolation level serializable');
     });
 
-    afterEach(function () {
+    afterEach(() => {
         delete options.task;
         delete options.query;
     });
 
 });
 
-describe("Generators - Negative", function () {
+describe('Generators - Negative', () => {
 
-    describe("normal reject", function () {
-        var result;
+    describe('normal reject', () => {
+        let result;
+        const err = new Error('ops!');
 
-        var myTask = function*() {
-            return yield promise.reject(123);
+        const myTask = function* () {
+            return yield promise.reject(err);
         };
 
-        beforeEach(function (done) {
+        beforeEach(done => {
             db.task(myTask)
-                .catch(function (error) {
+                .catch(error => {
                     result = error;
-                    done();
-                });
+                })
+                .finally(done);
         });
 
-        it("must reject with the right value", function () {
-            expect(result).toBe(123);
+        it('must reject with the right value', () => {
+            expect(result).toBe(err);
         });
     });
 
-    describe("error thrown", function () {
+    describe('error thrown', () => {
 
-        var result, tag;
+        let result, tag;
 
+        // eslint-disable-next-line
         function* myTask() {
             throw 123;
         }
 
-        myTask.tag = "myTag";
-
-        beforeEach(function (done) {
-            options.task = function (e) {
+        beforeEach(done => {
+            options.task = e => {
                 tag = e.ctx.tag;
             };
-            db.task(myTask)
-                .catch(function (error) {
+            db.task('myTag', myTask)
+                .catch(error => {
                     result = error;
-                    done();
-                });
+                })
+                .finally(done);
         });
 
-        it("must reject with the right value", function () {
+        it('must reject with the right value', () => {
             expect(result).toBe(123);
-            expect(tag).toBe("myTag");
+            expect(tag).toBe('myTag');
         });
 
-        afterEach(function () {
+        afterEach(() => {
             delete options.task;
         });
 

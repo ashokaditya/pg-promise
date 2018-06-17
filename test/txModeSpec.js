@@ -1,21 +1,24 @@
 'use strict';
 
-/*eslint-disable */
+const header = require('./db/header');
+const tools = require('./tools');
 
-var header = require('./db/header');
-var promise = header.defPromise;
-var options = {
-    promiseLib: promise
+const promise = header.defPromise;
+const options = {
+    promiseLib: promise,
+    noWarnings: true
 };
-var dbHeader = header(options);
-var pgp = dbHeader.pgp;
-var db = dbHeader.db;
+const dbHeader = header(options);
+const pgp = dbHeader.pgp;
+const db = dbHeader.db;
 
-describe("Transaction Mode", function () {
+describe('Transaction Mode', () => {
 
-    describe("without parameters, capitalized", function () {
-        var queries = [], result, ctx, context = {};
-        beforeEach(function (done) {
+    describe('without parameters, capitalized', () => {
+        const queries = [];
+        let result, ctx;
+        const context = {};
+        beforeEach(done => {
 
             options.capSQL = true;
             options.query = function (e) {
@@ -24,291 +27,292 @@ describe("Transaction Mode", function () {
 
             function txNoParams() {
                 ctx = this.ctx.context;
-                return promise.resolve("success");
+                return promise.resolve('success');
             }
 
             txNoParams.txMode = new pgp.txMode.TransactionMode();
 
             db.tx.call(context, txNoParams)
-                .then(function (data) {
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute default transaction opening", function () {
-            expect(result).toBe("success");
+        it('must execute default transaction opening', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('BEGIN');
             expect(ctx).toBe(context);
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
             delete options.capSQL;
         });
     });
 
-    describe("initialized without new", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('initialized without new', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
             function txNoParams() {
-                return promise.resolve("success");
+                return promise.resolve('success');
             }
 
+            // eslint-disable-next-line
             txNoParams.txMode = pgp.txMode.TransactionMode();
 
             db.tx(txNoParams)
-                .then(function (data) {
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute default transaction opening", function () {
-            expect(result).toBe("success");
+        it('must execute default transaction opening', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with isolation level", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with isolation level', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const mode = new pgp.txMode.TransactionMode(pgp.txMode.isolationLevel.serializable);
 
-            txNoParams.txMode = new pgp.txMode.TransactionMode(pgp.txMode.isolationLevel.serializable);
-
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin isolation level serializable');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with access mode = read only", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with access mode = read only', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const mode = new pgp.txMode.TransactionMode({readOnly: true});
 
-            txNoParams.txMode = new pgp.txMode.TransactionMode({readOnly: true});
-
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin read only');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with access mode = read/write", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with access mode = read/write', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const mode = new pgp.txMode.TransactionMode({readOnly: false});
 
-            txNoParams.txMode = new pgp.txMode.TransactionMode({readOnly: false});
-
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin read write');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with serializable and read-only", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with serializable and read-only', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const level = pgp.txMode.isolationLevel;
 
-            var level = pgp.txMode.isolationLevel;
-
-            txNoParams.txMode = new pgp.txMode.TransactionMode({
+            const mode = new pgp.txMode.TransactionMode({
                 tiLevel: level.serializable,
                 readOnly: true
             });
 
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin isolation level serializable read only');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with deferrable", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with deferrable', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const level = pgp.txMode.isolationLevel;
 
-            var level = pgp.txMode.isolationLevel;
-
-            txNoParams.txMode = new pgp.txMode.TransactionMode({
+            const mode = new pgp.txMode.TransactionMode({
                 tiLevel: level.serializable,
                 readOnly: true,
                 deferrable: true
             });
 
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin isolation level serializable read only deferrable');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
 
-    describe("with not deferrable", function () {
-        var queries = [], result;
-        beforeEach(function (done) {
+    describe('with not deferrable', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-            options.query = function (e) {
+            options.query = e => {
                 queries.push(e.query);
             };
 
-            function txNoParams() {
-                return promise.resolve("success");
-            }
+            const level = pgp.txMode.isolationLevel;
 
-            var level = pgp.txMode.isolationLevel;
-
-            txNoParams.txMode = new pgp.txMode.TransactionMode({
+            const mode = new pgp.txMode.TransactionMode({
                 tiLevel: level.serializable,
                 readOnly: true,
                 deferrable: false
             });
 
-            db.tx(txNoParams)
-                .then(function (data) {
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
                     result = data;
                     done();
                 });
         });
-        it("must execute correct command", function () {
-            expect(result).toBe("success");
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
             expect(queries.length).toBe(2);
             expect(queries[0]).toBe('begin isolation level serializable read only not deferrable');
         });
-        afterEach(function () {
+        afterEach(() => {
             delete options.query;
         });
     });
-    /*
-     describe("with a combination", function () {
-     var queries = [], result;
-     beforeEach(function (done) {
 
-     options.query = function (e) {
-     queries.push(e.query);
-     };
+    describe('when deferrable is irrelevant', () => {
+        const queries = [];
+        let result;
+        beforeEach(done => {
 
-     function txNoParams() {
-     return promise.resolve("success");
-     }
+            options.query = e => {
+                queries.push(e.query);
+            };
 
-     var level = pgp.txMode.isolationLevel;
-     txNoParams.txMode = new pgp.txMode.TransactionMode(level.repeatableRead, true, false);
+            const level = pgp.txMode.isolationLevel;
+            const mode = new pgp.txMode.TransactionMode(level.repeatableRead, true, false);
 
-     db.tx(txNoParams)
-     .then(function (data) {
-     result = data;
-     done();
-     });
-     });
-     it("must execute correct command", function () {
-     expect(result).toBe("success");
-     expect(queries.length).toBe(2);
-     expect(queries[0]).toBe('begin isolation level repeatable read read only not deferrable');
-     });
-     afterEach(function () {
-     delete options.query;
-     });
-     });
-     */
+            db.tx({mode}, () => {
+                return promise.resolve('success');
+            })
+                .then(data => {
+                    result = data;
+                    done();
+                });
+        });
+        it('must execute correct command', () => {
+            expect(result).toBe('success');
+            expect(queries.length).toBe(2);
+            expect(queries[0]).toBe('begin isolation level repeatable read read only');
+        });
+        afterEach(() => {
+            delete options.query;
+        });
+    });
+
+    describe('inspection', () => {
+        const mode = new pgp.txMode.TransactionMode();
+        it('must return the same as method begin()', () => {
+            expect(mode.begin(true)).toBe(tools.inspect(mode));
+        });
+    });
 });
 
 if (jasmine.Runner) {
-    var _finishCallback = jasmine.Runner.prototype.finishCallback;
+    const _finishCallback = jasmine.Runner.prototype.finishCallback;
     jasmine.Runner.prototype.finishCallback = function () {
         // Run the old finishCallback:
         _finishCallback.bind(this)();

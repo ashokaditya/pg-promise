@@ -1,12 +1,13 @@
 language: node_js
 sudo: required
-dist: trusty
 node_js:
   - "4"
   - "6"
-  - "7"
+  - "8"
+  - "9"
+  - "10"
 addons:
-  postgresql: "9.5"
+  postgresql: "9.6"
 script: "npm run travis"
 before_script:
   - psql -c 'create database pg_promise_test;' -U postgres

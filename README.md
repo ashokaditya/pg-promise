@@ -1,535 +1,606 @@
 pg-promise
-===========
+==========
 
 [Promises/A+] interface for PostgreSQL.
 
 [![Build Status](https://travis-ci.org/vitaly-t/pg-promise.svg?branch=master)](https://travis-ci.org/vitaly-t/pg-promise)
 [![Coverage Status](https://coveralls.io/repos/vitaly-t/pg-promise/badge.svg?branch=master)](https://coveralls.io/r/vitaly-t/pg-promise?branch=master)
-[![Downloads Count](http://img.shields.io/npm/dm/pg-promise.svg)](https://www.npmjs.com/package/pg-promise)
 [![Package Quality](http://npm.packagequality.com/shield/pg-promise.svg)](http://packagequality.com/#?package=pg-promise)
 [![Join the chat at https://gitter.im/vitaly-t/pg-promise](https://img.shields.io/gitter/room/vitaly-t/pg-promise.svg)](https://gitter.im/vitaly-t/pg-promise?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ---
-<a href="https://promisesaplus.com/"><img align="right" width="190" height="190" src="http://s8.postimg.org/k7dtue8lx/pg_promise.jpg"></a>
-
-* Supporting [Promise], [Bluebird], [When], [Q], etc.
-* Transactions, functions, flexible query formatting;
-* Automatic database connections;
-* Strict query result filters.
-
-<a href='https://pledgie.com/campaigns/32367'><img alt='Click here to lend your support to: pg-promise and make a donation at pledgie.com !' src='https://pledgie.com/campaigns/32367.png?skin_name=chrome' border='0' ></a>
-
----
 
 * [About](#about)
-* [Installing](#installing)
-* [Getting Started](#getting-started)
-  - [Initialization](#initialization)
-  - [Database](#database)
-  - [Documentation](#documentation)  
-* [Testing](#testing)    
-* [Usage](#usage)
-  - [Queries and Parameters](#queries-and-parameters)
-    - [SQL Names](#sql-names)  
-    - [Raw Text](#raw-text)  
-    - [Open Values](#open-values)        
-  - [Query Result Mask](#query-result-mask)    
-  - [Named Parameters](#named-parameters)
-  - [Conversion Helpers](#conversion-helpers)
-  - [Custom Type Formatting](#custom-type-formatting)  
-    - [Raw Custom Types](#raw-custom-types)   
+* [Support & Sponsorship](#support--sponsorship)
+* [Documentation](#documentation)
+* [Contributing](#contributing) 
+* [Usage]
+  - [Methods](#methods)
+  - [Query Formatting](#query-formatting)
+    - [Index Variables]  
+    - [Named Parameters]
+      - [Nested Named Parameters]
+  - [Formatting Filters](#formatting-filters)          
+    - [SQL Names]  
+      - [Alias Filter]    
+    - [Raw Text]  
+    - [Open Values]
+    - [JSON Filter]
+    - [CSV Filter]    
+  - [Custom Type Formatting]
+    - [Explicit CTF]
+    - [Symbolic CTF]    
   - [Query Files](#query-files)    
-  - [Tasks](#tasks)    
-  - [Transactions](#transactions)
-    - [Nested Transactions](#nested-transactions)
-    - [Synchronous Transactions](#synchronous-transactions)    
-    - [Configurable Transactions](#configurable-transactions)
-  - [Generators](#generators)
-* [Advanced](#advanced)
-  - [Initialization Options](#initialization-options)
-  - [Library de-initialization](#library-de-initialization)
+  - [Tasks]    
+    - [Conditional Tasks]  
+  - [Transactions]    
+    - [Nested Transactions]    
+      - [Limitations]   
+    - [Configurable Transactions]
+    - [Conditional Transactions]    
+  - [Library de-initialization]
 * [History](#history)
-* [License](#license)
 
 ---
 
 # About
 
-Built on top of [node-postgres] and its connection pool, this library translates their callback interface into one based on [Promises/A+],
-while extending the protocol to a higher level, with automated connections and transactions management.
+Built on top of [node-postgres], this library adds the following:
 
-In addition, the library provides:
+* Automatic connections
+* Automatic transactions
+* Powerful query-formatting engine
+* Support for ES6 generators and ES7 `async/await`
+* Declarative approach to handling query results
+* Global events reporting for central handling
+* Extensive support for external SQL files
+* Support for all promise libraries
 
-* its own, more flexible query formatting
-* events reporting for connectivity, errors, queries, etc.
-* support for all popular promise libraries + ES6 generators
-* declarative approach to controlling query results
-* extensive support for external SQL files
+# Support & Sponsorship  
 
-# Installing
-```
-$ npm install pg-promise
-```
+<a href="https://lisk.io" alt="LISK" style="outline : none;" target="_blank">![lisk](https://user-images.githubusercontent.com/5108906/35188739-863a8e40-fe33-11e7-8ec4-f3fe13f43ca7.jpg)</a>
 
-# Getting Started
+If you like what we do, and would like to see it continue, then please consider donating:
 
-## Initialization
+ - <a href='https://www.paypal.me/VitalyTomilov'><img alt='Click here to lend your support to: pg-promise and make a donation at PayPal.com !' src='https://github.com/vitaly-t/pg-promise/raw/master/jsdoc/paypal.png' border='0' ></a>
+ - Bitcoin: `1yki7MXMkuDw8qqe5icVdh1GJZSQSzKZp`
+ - Lisk: `17030494873278665829L`
 
-Loading and initializing the library with [Initialization Options]:
+# Documentation
 
-```js
-var pgp = require('pg-promise')({
-    // Initialization Options
-});
-```
+Chapter [Usage] below explains the basics you need to know, while the [Official Documentation]
+gets you started, and provides links to all other resources.
 
-&#8722; or without [Initialization Options]:
+# Contributing
 
-```js
-var pgp = require('pg-promise')();
-```
- 
-## Database
-
-Create your [Database] object from the connection details:
-
-```js
-var db = pgp(connection);
-```
-
-The `connection` parameter can be any of the following:
-
-* [Configuration Object]
-* [Connection String]
-
-Object `db` represents the [Database] protocol with lazy connection, i.e. only the actual query methods acquire
-and release the connection. You should create only one global/shared `db` object per connection details.
-
-## Documentation
-
-* [Learn by Example] - the quickest way to get started with this library
-* [Protocol API] - all the latest protocol documentation
-* [Wiki Pages](https://github.com/vitaly-t/pg-promise/wiki) - all the documentation references
-* [TypeScript 2.x](https://github.com/vitaly-t/pg-promise/tree/master/typescript) declarations for the library
-
-# Testing
-
-* Clone the repository (or download, if you prefer):
-```
-$ git clone https://github.com/vitaly-t/pg-promise
-```
-
-* Install the library's DEV dependencies:
-```
-$ npm install
-```
-
-* Make sure all tests can connect to your local test database, using the connection details in
-[test/db/header.js](https://github.com/vitaly-t/pg-promise/blob/master/test/db/header.js).
-Either set up your test database accordingly or change the connection details in that file.
-
-* Initialize the database with some test data:
-```
-$ node test/db/init.js
-```
-
-* To run all tests:
-```
-$ npm test
-```
-
-* To run all tests with coverage:
-```
-$ npm run coverage
-```
+Please read the [Contribution Notes] before opening any new issue or PR.
 
 # Usage
 
-## Queries and Parameters
+Once you have created a [Database] object, according to the steps in the [Official Documentation],
+you get access to the methods documented below. 
 
-Every connection context of the library shares the same query protocol, starting with generic method [query],
-defined as shown below:
+## Methods 
+
+All query methods of the library are based off generic method [query].
+
+You should normally use only the derived, result-specific methods for executing queries, all of which are named according
+to how many rows of data the query is expected to return, so for each query you should pick the right method:
+[none], [one], [oneOrNone], [many], [manyOrNone] = [any]. Do not confuse the method name for the number of rows
+to be affected by the query, which is completely irrelevant.
+
+By relying on the result-specific methods you protect your code from an unexpected number of data rows,
+to be automatically rejected (treated as errors).  
+
+There are also a few specific methods that you will often need:
+
+* [result], [multi], [multiResult] - for verbose and/or multi-query results;
+* [map], [each] - for simpler/inline result pre-processing/re-mapping;
+* [func], [proc] - to simplify execution of SQL functions/procedures;
+* [stream] - to access rows from a query via a read stream;
+* [connect], [task], [tx] + [txIf] - for shared connections + automatic transactions, each exposing a connected protocol
+  that has additional methods [batch], [page] and [sequence].
+
+The protocol is fully customizable / extendable via event [extend].
+
+**IMPORTANT:**
+
+The most important methods to understand from start are [task] and [tx]/[txIf] (see [Tasks] and [Transactions]).
+As documented for method [query], it acquires and releases the connection, which makes it a poor choice for executing
+multiple queries at once. For this reason, [Chaining Queries] is a must-read, to avoid writing the code that misuses connections.
+
+[Learn by Example] is a beginner's tutorial based on examples.
+
+## Query Formatting
+
+This library comes with embedded query-formatting engine that offers high-performance value escaping,
+flexibility and extensibility. It is used by default with all query methods, unless you opt out of it entirely
+via option `pgFormatting` within [Initialization Options].  
+
+All formatting methods used internally are available from the [formatting] namespace, so they can also be used
+directly when needed. The main method there is [format], used by every query method to format the query. 
+
+The formatting syntax for variables is decided from the type of `values` passed in:
+
+* [Index Variables] when `values` is an array or a single basic type;
+* [Named Parameters] when `values` is an object (other than `Array` or `null`).
+
+**ATTENTION:** Never use ES6 template strings or manual concatenation to generate queries, as both
+can easily result in broken queries! Only this library's formatting engine knows how to properly escape
+variable values for PostgreSQL.
+
+### Index Variables
+
+The simplest (classic) formatting uses `$1, $2, ...` syntax to inject values into the query string,
+based on their index (from `$1` to `$100000`) from the array of values: 
 
 ```js
-function query(query, values, qrm){}
+db.any('SELECT * FROM product WHERE price BETWEEN $1 AND $2', [1, 10])
 ```
 
-* `query` (required) - a string with support for three types of formatting, depending on the `values` passed:
-   - format `$1` (single variable), if `values` is of type `string`, `boolean`, `number`, `Date`, `function`, `null` or [QueryFile];
-   - format `$1, $2, etc..`, if `values` is an array;
-   - format `$*propName*`, if `values` is an object (not `null` and not `Date`), where `*` is any of the supported open-close pairs: `{}`, `()`, `<>`, `[]`, `//`;
-* `values` (optional) - value/array/object to replace the variables in the query;
-* `qrm` - (optional) *Query Result Mask*, as explained below. When not passed, it defaults to `pgp.queryResult.any`.
-
-When a value/property inside array/object is an array, it is treated as a [PostgreSQL Array Type](http://www.postgresql.org/docs/9.4/static/arrays.html),
-converted into the array constructor format of `array[]`, the same as calling method `pgp.as.array()`.
-
-When a value/property inside array/object is of type `object` (except for `null`, `Date` or `Buffer`), it is automatically
-serialized into JSON, the same as calling method `pgp.as.json()`, except the latter would convert anything to JSON.
-
-For the latest SQL formatting support see the API: methods [query] and [as.format].
-
-### SQL Names
-
-When a variable ends with `~` (tilde) or `:name`, it represents an SQL name or identifier, which must be a text
-string of at least 1 character long. Such name is then properly escaped and wrapped in double quotes.
+The formatting engine also supports single-value parametrization for queries that use only variable `$1`: 
 
 ```js
-query('INSERT INTO $1~($2~) VALUES(...)', ['Table Name', 'Column Name']);
-//=> INSERT INTO "Table Name"("Column Name") VALUES(...)
-
-// A mixed example for a dynamic column list:
-var columns = ['id', 'message'];
-query('SELECT ${columns^} FROM ${table~}', {
-    columns: columns.map(pgp.as.name).join(),
-    table: 'Table Name'
-});
-//=> SELECT "id","message" FROM "Table Name"
+db.any('SELECT * FROM users WHERE name = $1', 'John')
 ```
 
-Version 5.2.1 and later supports extended syntax for `${this~}` and for method [as.name]:
+This however works only for types `number`, `string`, `boolean`, `Date` and `null`, because types like `Array`
+and `Object` change the way parameters are interpreted. That's why passing in index variables within an array
+is advised as safer, to avoid ambiguities.
+
+### Named Parameters
+
+When a query method is parameterized with `values` as an object, the formatting engine expects the query to use
+the Named Parameter syntax `$*propName*`, with `*` being any of the following open-close pairs: `{}`, `()`, `<>`, `[]`, `//`.
 
 ```js
-var obj = {
-    one: 1,
-    two: 2
-};
-
-format('INSERT INTO table(${this~}) VALUES(${one}, ${two})', obj);
-//=>INSERT INTO table("one","two") VALUES(1, 2)
-```
-
-Relying on this type of formatting for sql names and identifiers, along with regular variable formatting
-makes your application impervious to sql injection.
-
-See method [as.name] for the latest API.
-
-### Raw Text
-
-Raw-text values can be injected by ending the variable name with `^` or `:raw`:
-`$1^, $2^, etc...`, `$*varName^*`, where `*` is any of the supported open-close pairs: `{}`, `()`, `<>`, `[]`, `//`
-
-Raw text is injected without any pre-processing, which means:
-
-* No proper escaping (replacing each single-quote symbol `'` with two);
-* No wrapping text into single quotes.
-
-Unlike regular variables, value for raw-text variables cannot be `null` or `undefined`, because of the ambiguous meaning
-in this case. If such values are passed in, the formatter will throw error `Values null/undefined cannot be used as raw text.` 
-
-Special syntax `this^` within the [Named Parameters](#named-parameters) refers to the formatting object itself, to be injected
-as a raw-text JSON-formatted string.
-
-For the latest SQL formatting support see method [as.format]
-
-### Open Values
-
-Open values simplify concatenation of string values within a query, primarily for such special cases as `LIKE`/`ILIKE` filters.
-
-Names for open-value variables end with either `:value` or symbol `#`, and it means that such a value is to be properly
-formatted and escaped, but not to be wrapped in quotes when it is a text.
-
-Similar to [raw-text](#raw-text) variables, open-value variables are also not allowed to be `null` or `undefined`, or they will throw
-error `Open values cannot be null or undefined.` And the difference is that [raw-text](#raw-text) variables are not escaped, while
-open-value variables are properly escaped.
-
-Below is an example of formatting `LIKE` filter that ends with a second name: 
-
-```js
-// using $1# or $1:value syntax:
-query('...WHERE name LIKE \'%$1#\'', 'O\'Connor');
-query('...WHERE name LIKE \'%$1:value\'', 'O\'Connor');
-//=> ...WHERE name LIKE '%O''Connor'
-
-// using ${propName#} or ${propName:value} syntax:
-query('...WHERE name LIKE \'%${filter#}\'', {filter: 'O\'Connor'});
-query('...WHERE name LIKE \'%${filter:value}\'', {filter: 'O\'Connor'});
-//=> ...WHERE name LIKE '%O''Connor'
-```
-
-See also: method [as.value].
-
-## Query Result Mask
-
-In order to eliminate the chances of unexpected query results and thus make the code more robust,
-method [query] uses parameter `qrm` (Query Result Mask):
-
-```js
-///////////////////////////////////////////////////////
-// Query Result Mask flags;
-//
-// Any combination is supported, except for one + many.
-var queryResult = {
-    /** Single row is expected. */
-    one: 1,
-    /** One or more rows expected. */
-    many: 2,
-    /** Expecting no rows. */
-    none: 4,
-    /** many|none - any result is expected. */
-    any: 6
-};
-```
-
-In the following generic-query example we indicate that the call can return anything:
-
-```js
-db.query('select * from users');
-```
-
-which is equivalent to making one of the following calls:
-
-```js
-var qrm = pgp.queryResult;
-db.query('SELECT * FROM users', undefined, qrm.many | qrm.none);
-db.query('SELECT * FROM users', undefined, qrm.any);
-db.manyOrNone('SELECT * FROM users');
-db.any('SELECT * FROM users');
-```
-
-This usage pattern is facilitated through result-specific methods that can be used instead of the generic query:
-
-```js
-db.many(query, values); // expects one or more rows
-db.one(query, values); // expects a single row
-db.none(query, values); // expects no rows
-db.any(query, values); // expects anything, same as `manyOrNone`
-db.oneOrNone(query, values); // expects 1 or 0 rows
-db.manyOrNone(query, values); // expects anything, same as `any`
-```
-
-There is however one specific method `result(query, values)` to bypass any result verification, and instead resolve
-with the original [Result] object passed from the [PG] library.
-
-You can also add your own methods and properties to this protocol via the [extend](#extend) event.  
-
-Each query function resolves its **data** according to the `qrm` that was used:
-
-* `none` - **data** is `null`. If the query returns any kind of data, it is rejected.
-* `one` - **data** is a single object. If the query returns no data or more than one row of data, it is rejected.
-* `many` - **data** is an array of objects. If the query returns no rows, it is rejected.
-* `one`|`none` - **data** is `null`, if no data was returned; or a single object, if one row was returned.
-    If the query returns more than one row of data, the query is rejected.
-* `many`|`none` - **data** is an array of objects. When no rows are returned, **data** is an empty array.
-
-If you try to specify `one`|`many` in the same query, such query will be rejected without executing it, telling you that such mask is invalid.
-
-If `qrm` is not specified when calling generic [query] method, it is assumed to be `many`|`none` = `any`, i.e. any kind of data expected.
-
-> This is all about writing robust code, when the client specifies what kind of data it is ready to handle on the declarative level,
-leaving the burden of all extra checks to the library.
-
-## Named Parameters
-
-The library supports named parameters in query formatting, with the syntax of `$*propName*`, where `*` is any of the following open-close
-pairs: `{}`, `()`, `<>`, `[]`, `//`
-
-```js
-db.query('SELECT * FROM users WHERE name=${name} AND active=$/active/', {
+db.any('SELECT * FROM users WHERE name = ${name} AND active = $/active/', {
     name: 'John',
     active: true
 });
 ```
 
-The same goes for all types of query methods as well as method [as.format], where `values` can also be an object whose properties can be
-referred to by name from within the query.
+Valid variable names are limited to the syntax of open-name JavaScript variables. 
 
-A valid property name consists of any combination of letters, digits, underscores or `$`, and they are case-sensitive.
-Leading and trailing spaces around property names are ignored.
+Keep in mind that while property values `null` and `undefined` are both formatted as `null`,
+an error is thrown when the property does not exist.
 
-It is important to know that while property values `null` and `undefined` are both formatted as `null`,
-an error is thrown when the property doesn't exist at all (except for `partial` replacements - see below).
+**`this` reference**
 
-You can also use `partial` replacements within method [as.format], to ignore variables that do not exist in the formatting object.
-
-#### `this` reference
-
-Property `this` is a reference to the formatting object itself, so it can be inserted as a JSON-formatted string, alongside its properties.
-
-* `${this}` - inserts the object itself as a JSON-formatted string;
-* `${this^}` - inserts the object itself as a raw-text JSON-formatted string.
-
-**example:**
+Property `this` refers to the formatting object itself, to be inserted as a JSON-formatted string.
 
 ```js
-var doc = {
+db.none('INSERT INTO documents(id, doc) VALUES(${id}, ${this})', {
     id: 123,
-    body: 'some text'
-};
-
-db.none('INSERT INTO documents(id, doc) VALUES(${id}, ${this})', doc)
-    .then(() => {
-        // success;
-    })
-    .catch(error => {
-        // error;
-    });
+    body: 'some text'    
+})
+//=> INSERT INTO documents(id, doc) VALUES(123, '{"id":123,"body":"some text"}')
 ```    
 
-which will execute:
-```sql
-INSERT INTO documents(id, doc) VALUES(123, '{"id":123,"body":"some text"}')
-```
+#### Nested Named Parameters
 
-Modifier `:json` is an alternative to formatting the value as a JSON string.
+[Named Parameters] support property name nesting of any depth.
 
-**NOTE:** Technically, it is possible in javascript, though not recommended, for an object to contain a property
-with name `this`. And in such cases the property's value will be used instead.
-
-## Functions and Procedures
-
-In PostgreSQL stored procedures are just functions that usually do not return anything.
-
-Suppose we want to call function **findAudit** to find audit records by `user_id` and maximum timestamp.
-We can make such call as shown below:
+<details>
+<summary><b>Example</b></summary>
 
 ```js
-db.func('findAudit', [123, new Date()])
-    .then(data => {
-        console.log(data); // printing the data returned
-    })
-    .catch(error => {
-        console.log(error); // printing the error
-    });
+const obj = {
+    one: {
+        two: {
+            three: {
+                value1: 123,
+                value2: a => {
+                    // a = obj.one.two.three
+                    return 'hello';
+                },
+                value3: function(a) {
+                    // a = this = obj.one.two.three
+                    return 'world';
+                },
+                value4: {
+                    toPostgres: a => {
+                        // Custom Type Formatting
+                        // a = obj.one.two.three.value4
+                        return a.text;
+                    },
+                    text: 'custom'
+                }                
+            }
+        }
+    }
+};
+db.one('SELECT ${one.two.three.value1}', obj); //=> SELECT 123
+db.one('SELECT ${one.two.three.value2}', obj); //=> SELECT 'hello'
+db.one('SELECT ${one.two.three.value3}', obj); //=> SELECT 'world'
+db.one('SELECT ${one.two.three.value4}', obj); //=> SELECT 'custom'
+```
+</details>
+<br/>
+
+The last name in the resolution can be anything, including:
+
+* the actual value (basic JavaScript type)
+* a function that returns:
+  - the actual value
+  - another function
+  - a [Custom Type Formatting] object
+* a [Custom Type Formatting] object that returns:
+  - the actual value
+  - another [Custom Type Formatting] object
+  - a function
+
+i.e. the resolution chain is infinitely flexible, and supports recursion without limits.
+
+Please note, however, that nested parameters are not supported within the [helpers] namespace.
+
+## Formatting Filters
+
+By default, all values are formatted according to their JavaScript type. Formatting filters (or modifiers),
+change that, so the value is formatted differently. 
+
+Filters use the same syntax for [Index Variables] and [Named Parameters], following immediately the variable name:
+
+<details>
+<summary><b>With Index Variables</b></summary>
+
+```js
+db.any('SELECT $1:name FROM $2:name', ['price', 'products'])
+//=> SELECT "price" FROM "products"
+```
+</details>
+
+<details>
+<summary><b>With Named Parameters</b></summary>
+
+```js
+db.any('SELECT ${column:name} FROM ${table:name}', {
+    column: 'price',
+    table: 'products'    
+});
+//=> SELECT "price" FROM "products"
+```
+</details>
+<br/>
+
+The following filters are supported:
+
+* `:name` / `~` - [SQL Names]
+  - `:alias` - [Alias Filter]
+* `:raw` / `^` - [Raw Text]
+* `:value` / `#` - [Open Values]
+* `:json` - [JSON Filter]
+* `:csv` - [CSV Filter]
+
+### SQL Names
+
+When a variable ends with `:name`, or shorter syntax `~` (tilde), it represents an SQL name or identifier,
+to be escaped accordingly:
+
+<details>
+<summary><b>Using ~ filter</b></summary>
+
+```js
+db.query('INSERT INTO $1~($2~) VALUES(...)', ['Table Name', 'Column Name']);
+//=> INSERT INTO "Table Name"("Column Name") VALUES(...)
+```
+</details>
+
+<details>
+<summary><b>Using :name filter</b></summary>
+
+```js
+db.query('INSERT INTO $1:name($2:name) VALUES(...)', ['Table Name', 'Column Name']);
+//=> INSERT INTO "Table Name"("Column Name") VALUES(...)
+```
+</details>
+<br/>
+
+Typically, an SQL name variable is a text string, which must be at least 1 character long.
+However, `pg-promise` supports a variety of ways in which SQL names can be supplied:
+
+* A string that contains only `*` (asterisks) is automatically recognized as _all columns_:
+
+```js
+db.query('SELECT $1:name FROM $2:name', ['*', 'table']);
+//=> SELECT * FROM "table"
 ```
 
-We passed it `user_id = 123`, plus current Date/Time as the timestamp. We assume that the function signature matches
-the parameters that we passed. All values passed are serialized automatically to comply with PostgreSQL type formats.
+* An array of strings to represent column names:
 
-Method `func` accepts optional third parameter - `qrm` (Query Result Mask), the same as method [query].
+```js
+db.query('SELECT ${columns:name} FROM ${table:name}', {
+    columns: ['column1', 'column2'],
+    table: 'table'
+});
+//=> SELECT "column1","column2" FROM "table"
+```
 
-And when you are not expecting any return results, call `db.proc` instead. Both methods return a [Promise] object,
-but `db.proc` doesn't take a `qrm` parameter, always assuming it is `one`|`none`.
+* Any object that's not an array gets its properties enumerated for column names:
 
-Summary for supporting procedures and functions:
+```js
+const obj = {
+    one: 1,
+    two: 2
+};
+db.query('SELECT $1:name FROM $2:name', [obj, 'table']);
+//=> SELECT "one","two" FROM "table"
+```
 
-* `func(query, values, qrm)` - expects the result according to `qrm`
-* `proc(query, values)` - calls `func(query, values, qrm.one | qrm.none)`
+In addition, the syntax supports `this` to enumerate column names from the formatting object:
+ 
+```js
+const obj = {
+    one: 1,
+    two: 2
+};
+db.query('INSERT INTO table(${this:name}) VALUES(${this:csv})', obj);
+//=> INSERT INTO table("one","two") VALUES(1, 2)
+```
 
-## Conversion Helpers
+Relying on this type of formatting for sql names and identifiers, along with regular variable formatting
+protects your application from [SQL injection].
 
-The library provides several helper functions to convert javascript types into their proper PostgreSQL presentation that can be passed
-directly into queries or functions as parameters. All of such helper functions are located within namespace [pgp.as], and each function
-returns a formatted string when successful or throws an error when it fails.
+Method [as.name] implements the formatting.
+
+#### Alias Filter
+
+An alias is a lighter/simpler version of [SQL Names], which only supports a text string, and is used via the `:alias` filter.
+
+For example, it will skip adding surrounding double quotes when the name is a same-case single word:
+
+```js
+db.any('SELECT full_name as $1:alias FROM $2:name', ['name', 'table']);
+//=> SELECT full_name as name FROM "table"
+```
+
+For more details see method [as.alias] that implements the formatting.
+
+### Raw Text
+
+When a variable ends with `:raw`, or shorter syntax `^`, the value is to be injected as raw text, without escaping.
+
+Such variables cannot be `null` or `undefined`, because of the ambiguous meaning in this case, and those values
+will throw error `Values null/undefined cannot be used as raw text.`
+
+```js
+const where = pgp.as.format('WHERE price BETWEEN $1 AND $2', [5, 10]); // pre-format WHERE condition
+db.any('SELECT * FROM products $1:raw', where);
+//=> SELECT * FROM products WHERE price BETWEEN 5 AND 10
+```
+
+Special syntax `this:raw` / `this^` is supported, to inject the formatting object as raw JSON string.
+
+### Open Values
+
+When a variable ends with `:value`, or shorter syntax `#`, it is escaped as usual, except when its type is a string,
+the trailing quotes are not added.
+
+Open values are primarily to be able to compose complete `LIKE`/`ILIKE` dynamic statements in external SQL files,
+without having to generate them in the code.
+
+i.e. you can either generate a filter like this in your code:
+
+```js
+const name = 'John';
+const filter = '%' + name + '%';
+```
+
+and then pass it in as a regular string variable, or you can pass in only `name`, and have your query use the
+open-value syntax to add the extra search logic:
+
+```sql
+SELECT * FROM table WHERE name LIKE '%$1:value%')
+```
+
+Method [as.value] implements the formatting.
+
+### JSON Filter
+
+When a variable ends with `:json`, explicit JSON formatting is applied to the value.
+
+By default, any object that's not `Date`, `Array`, `Buffer`, `null` or Custom-Type (see [Custom Type Formatting]),
+is automatically formatted as JSON.
+
+Method [as.json] implements the formatting.
+
+### CSV Filter
+
+When a variable ends with `:csv` or `:list`, it is formatted as a list of Comma-Separated Values, with each
+value formatted according to its JavaScript type.
+
+Typically, you would use this for a value that's an array, though it works for single values also. See the examples below.
+
+<details>
+<summary><b>Using :csv filter</b></summary>
+
+```js
+const ids = [1, 2, 3];
+db.any('SELECT * FROM table WHERE id IN ($1:csv)', [ids])
+//=> SELECT * FROM table WHERE id IN (1,2,3)
+```
+</details>
+
+<details>
+<summary><b>Using :list filter</b></summary>
+
+```js
+const ids = [1, 2, 3];
+db.any('SELECT * FROM table WHERE id IN ($1:list)', [ids])
+//=> SELECT * FROM table WHERE id IN (1,2,3)
+```
+</details>
+<br/>
+
+Using automatic property enumeration:
+
+<details>
+<summary><b>Enumeration with :csv filter</b></summary> 
+
+```js
+const obj = {first: 123, second: 'text'};
+
+db.none('INSERT INTO table($1:name) VALUES($1:csv)', [obj])
+//=> INSERT INTO table("first","second") VALUES(123,'text')
+
+db.none('INSERT INTO table(${this:name}) VALUES(${this:csv})', obj)
+//=> INSERT INTO table("first","second") VALUES(123,'text')
+```
+</details>
+
+<details>
+<summary><b>Enumeration with :list filter</b></summary> 
+
+```js
+const obj = {first: 123, second: 'text'};
+
+db.none('INSERT INTO table($1:name) VALUES($1:list)', [obj])
+//=> INSERT INTO table("first","second") VALUES(123,'text')
+
+db.none('INSERT INTO table(${this:name}) VALUES(${this:list})', obj)
+//=> INSERT INTO table("first","second") VALUES(123,'text')
+```
+</details>
+<br/>
+
+Method [as.csv] implements the formatting.
 
 ## Custom Type Formatting
 
-When we pass `values` as a single parameter or inside an array, it is verified to be an object/value
-that supports function `formatDBType`, as either its own or inherited. And if the function exists,
-its return result overrides both the actual value and the formatting syntax for parameter `query`.
+The library supports dual syntax for _CTF_ (Custom Type Formatting):
 
-This allows usage of your own custom types as formatting parameters for the queries, as well as
-overriding formatting for standard object types, such as `Date` and `Array`.
+* [Explicit CTF] - extending the object/type directly, for ease of use, while changing its signature;
+* [Symbolic CTF] - extending the object/type via [Symbol] properties, without changing its signature.
 
-**Example: your own type formatting**
+The library always first checks for the [Symbolic CTF], and if no such syntax is used, only then it checks for the [Explicit CTF].
+
+### Explicit CTF
+
+Any value/object that implements function `toPostgres` is treated as a custom-formatting type. The function is then called to get the actual value,
+passing it the object via `this` context, and plus as a single parameter (in case `toPostgres` is an ES6 arrow function):
 
 ```js
-// ES5:
-function Money(m) {
-    this.amount = m;
-    this.formatDBType = function () {
-        // return a string with 2 decimal points;
-        return this.amount.toFixed(2);
+const obj = {
+    toPostgres(self) {
+        // self = this = obj
+        
+        // return a value that needs proper escaping
     }
 }
-
-// ES6:
-function Money(m) {
-    this.amount = m;
-    this.formatDBType = a => a.amount.toFixed(2);
-}
 ```
 
-**Example: overriding standard types**
+Function `toPostgres` can return anything, including another object with its own `toPostgres` function, i.e. nested custom types are supported.
+
+The value returned from `toPostgres` is escaped according to its JavaScript type, unless the object also contains property `rawType` set
+to a truthy value, in which case the returned value is considered pre-formatted, and thus injected directly, as [Raw Text]:
 
 ```js
-// ES5:
-Date.prototype.formatDBType = function () {
-    // format Date as a local timestamp;
-    return this.getTime();
-};
-
-// ES6:
-Date.prototype.formatDBType = a => a.getTime();
+const obj = {
+    toPostgres(self) {
+        // self = this = obj
+        
+        // return a pre-formatted value that does not need escaping
+    },
+    rawType: true // use result from toPostgres directly, as Raw Text
+}
 ```
 
-Function `formatDBType` is allowed to return absolutely anything, including:
-* instance of another object that supports its own custom formatting;
-* instance of another object that does not have its own custom formatting;
-* another function, with recursion of any depth;
+Example below implements a class that auto-formats `ST_MakePoint` from coordinates:
 
-Please note that the return result from `formatDBType` may even affect the
-formatting syntax expected within parameter `query`, as explained below.
-
-If you pass in `values` as an object that has function `formatDBType`,
-and that function returns an array, then your `query` is expected to use 
-`$1, $2` as the formatting syntax.
-
-And if `formatDBType` in that case returns a custom-type object that does not support
-custom formatting, then `query` will be expected to use `$*propName*` as the formatting syntax.
-
-### Raw Custom Types
-
-This features allows overriding `raw` flag for the values returned from custom types.
-
-Any custom type or standard type that implements function `formatDBType` can also set
-property `_rawDBType = true` to force raw variable formatting on the returned value.
-
-This makes the custom type formatting ultimately flexible, as there is no limitation
-as to how a custom type can format its value.
-
-For example, some special types, like UUID, do not have natural presentation in JavaScript,
-so they have to be converted into text strings when passed into the query formatting.
-For an array of UUID-s, for instance, you would have to explicitly cast the formatted value
-with `::uuid[]` appended at the end of the variable.
-  
-You can implement your own presentation for UUID that does not require extra casting:
-
-```js  
-function UUID(value) {
-    this.uuid = value;
-    this._rawDBType = true; // force raw format on output;
-    this.formatDBType = function () {
-        // alternatively, you can set flag
-        // _rawDBType during this call:
-        // this._rawDBType = true;
-        return this.uuid;
-    };
+```js
+class STPoint {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.rawType = true; // no escaping, because we return pre-formatted SQL
+    }
+    
+    toPostgres(self) {
+        return pgp.as.format('ST_MakePoint($1, $2)', [this.x, this.y]);
+    }
 }
-``` 
+```
 
-When you chain one custom-formatting type to return another one, please note that
-setting `_rawDBType` on any level will set the flag for the entire chain.
+And a classic syntax for such a class is even simpler:
+
+```js
+function STPoint(x, y){
+    this.rawType = true; // no escaping, because we return pre-formatted SQL
+    this.toPostgres = () => pgp.as.format('ST_MakePoint($1, $2)', [x, y]);
+}
+```
+
+With this class you can use `new STPoint(12, 34)` as a formatting value that will be injected correctly.  
+
+You can also use _CTF_ to override any standard type:
+
+```js
+Date.prototype.toPostgres = a => a.getTime();
+```
+
+### Symbolic CTF
+
+The only difference from [Explicit CTF] is that we set `toPostgres` and `rawType` as ES6 [Symbol] properties,
+defined in the [ctf] namespace: 
+
+```js
+const ctf = pgp.as.ctf; // Global CTF symbols
+
+const obj = {
+    [ctf.toPostgres](self) {
+        // self = this = obj
+        
+        // return a pre-formatted value that does not need escaping
+    },
+    [ctf.rawType]: true // use result from toPostgres directly, as Raw Text
+};
+```
+
+As CTF symbols are global, you can also configure objects independently of this library:
+
+```js
+const ctf = {
+    toPostgres: Symbol.for('ctf.toPostgres'),
+    rawType: Symbol.for('ctf.rawType')
+};
+```
+
+Other than that, it works exactly as the [Explicit CTF], but without changing the object's signature.
+
+If you do not know what it means, read the ES6 [Symbol] API and its use for unique property names.
+But in short, [Symbol] properties are not enumerated via `for(name in obj)`, i.e. they are not generally
+visible within JavaScript, only through specific API `Object.getOwnPropertySymbols`.
 
 ## Query Files
   
 Use of external SQL files (via [QueryFile]) offers many advantages:
 
 * Much cleaner JavaScript code, with all SQL kept in external files;
-* Much easier to write large and well-formatted SQL, with comments and whole revisions;
+* Much easier to write large and well-formatted SQL, with many comments and whole revisions;
 * Changes in external SQL can be automatically re-loaded (option `debug`), without restarting the app;
-* Pre-formatting SQL upon loading (option `params`), making a two-step SQL formatting very easy;
-* Parsing and minifying SQL (options `minify`/`compress`), for early error detection and smaller queries.
+* Pre-formatting SQL upon loading (option `params`), automating two-step SQL formatting;
+* Parsing and minifying SQL (options `minify` + `compress`), for early error detection and compact queries.
 
-Example:
+<details>
+<summary><b>Example</b></summary>
 
 ```js
-var path = require('path');
+const path = require('path');
 
 // Helper for linking to external query files:
 function sql(file) {
-    var fullPath = path.join(__dirname, file);
+    const fullPath = path.join(__dirname, file);
     return new pgp.QueryFile(fullPath, {minify: true});
 }
 
 // Create a QueryFile globally, once per file:
-var sqlFindUser = sql('./sql/findUser.sql');
+const sqlFindUser = sql('./sql/findUser.sql');
 
 db.one(sqlFindUser, {id: 123})
-    .then(user=> {
+    .then(user => {
         console.log(user);
     })
-    .catch(error=> {
+    .catch(error => {
         if (error instanceof pgp.errors.QueryFileError) {
             // => the error is related to our QueryFile
         }
@@ -540,94 +611,310 @@ File `findUser.sql`:
 
 ```sql
 /*
-    multi-line comment
+    multi-line comments are supported
 */
-SELECT name, dob -- single-line comment
+SELECT name, dob -- single-line comments are supported
 FROM Users
 WHERE id = ${id}
 ```
+</details>
+<br/>
 
 Every query method of the library can accept type [QueryFile] as its `query` parameter.
-The type never throws any error, leaving it for query methods to reject with [QueryFileError].
+Type [QueryFile] never throws any error, leaving it for query methods to gracefully reject with [QueryFileError].
 
-You should only create a single instance of [QueryFile] per file, and then reuse that instance throughout the application.
-
-Notable features of [QueryFile]:
-
-* `debug` mode, to make every query request check if the file has changed since it was last read, and if so - read it afresh.
-  This way you can write sql queries and see immediate updates without having to restart your application.
-* Option `params` is for static SQL pre-formatting, to inject certain values only once, like a schema name or a
-  configurable table name.
-
-In version 5.2.0, support for type [QueryFile] was also integrated into the query formatting engine. See method [as.format].
+Use of [Named Parameters] within external SQL files is recommended over the [Index Variables], because it makes the SQL
+much easier to read and understand, and because it also allows [Nested Named Parameters], so variables in a large
+and complex SQL file can be grouped in namespaces for even easier visual separation.
 
 ## Tasks
 
-A task represents a shared connection to be used within a callback function. The callback can be either a regular function or an ES6 generator.
-
-A transaction, for example, is just a special type of task, wrapped in `CONNECT->COMMIT/ROLLBACK`. 
+A [task] represents a shared connection for executing multiple queries:
 
 ```js
 db.task(t => {
-    // execute a chain of queries;
+    // execute a chain of queries against the task context, and return the result:
+    return t.one('SELECT count(*) FROM events WHERE id = $1', 123, a => +a.count)
+        .then(count => {
+            if(count > 0) {
+                return t.any('SELECT * FROM log WHERE event_id = $1', 123)
+                    .then(logs => {
+                        return {count, logs};
+                    })
+            }
+            return {count};
+        });    
 })
     .then(data => {
-        // success;
+        // success, data = either {count} or {count, logs}
     })
     .catch(error => {
-        // failed;    
+        // failed    
     });
 ```
 
-The purpose of tasks is simply to provide a shared connection context within the callback function to execute and return
-a promise chain, and then automatically release the connection.
+Tasks provide a shared connection context for its callback function, to be released when finished, and
+they must be used whenever executing more than one query at a time. See also [Chaining Queries] to understand
+the importance of using tasks.
+
+You can optionally tag tasks (see [Tags]), and use either ES6 generators or ES7 async syntax:
+
+<details>
+  <summary><b>With ES6 generator</b></summary>
+  
+```js
+db.task(function * (t) {
+    const count = yield t.one('SELECT count(*) FROM events WHERE id = $1', 123, a => +a.count);
+    if(count > 0) {
+        const logs = yield t.any('SELECT * FROM log WHERE event_id = $1', 123);
+        return {count, logs};
+    }
+    return {count};
+})
+    .then(data => {
+        // success, data = either {count} or {count, logs}
+    })
+    .catch(error => {
+        // failed    
+    });
+```
+
+</details>
+
+<details>
+  <summary><b>With ES6 generator + tag</b></summary>
+  
+```js
+db.task('get-event-logs', function * (t) {
+    const count = yield t.one('SELECT count(*) FROM events WHERE id = $1', 123, a => +a.count);
+    if(count > 0) {
+        const logs = yield t.any('SELECT * FROM log WHERE event_id = $1', 123);
+        return {count, logs};
+    }
+    return {count};
+})
+    .then(data => {
+        // success, data = either {count} or {count, logs}
+    })
+    .catch(error => {
+        // failed    
+    });
+```
+
+</details>
+
+<details>
+  <summary><b>With ES7 async</b></summary>
+  
+```js
+db.task(async t => {
+    const count = await t.one('SELECT count(*) FROM events WHERE id = $1', 123, a => +a.count);
+    if(count > 0) {
+        const logs = await t.any('SELECT * FROM log WHERE event_id = $1', 123);
+        return {count, logs};
+    }
+    return {count};
+})
+    .then(data => {
+        // success, data = either {count} or {count, logs}
+    })
+    .catch(error => {
+        // failed    
+    });
+```
+
+</details>
+
+<details>
+  <summary><b>With ES7 async + tag</b></summary>
+  
+```js
+db.task('get-event-logs', async t => {
+    const count = await t.one('SELECT count(*) FROM events WHERE id = $1', 123, a => +a.count);
+    if(count > 0) {
+        const logs = await t.any('SELECT * FROM log WHERE event_id = $1', 123);
+        return {count, logs};
+    }
+    return {count};
+})
+    .then(data => {
+        // success, data = either {count} or {count, logs}
+    })
+    .catch(error => {
+        // failed    
+    });
+```
+
+</details>
+
+### Conditional Tasks
+
+Method [taskIf] was added in v8.2.0, to create a new task only when required, according to the condition. 
+
+The default condition is to start a new task only when necessary, such as on the top level.
+
+<details>
+<summary><b>With default condition</b></summary>
+ 
+```js
+db.taskIf(t1 => {
+    // new task has started, as the top level doesn't have one
+    return t1.taskIf(t2 => {
+        // Task t1 is being used, according to the default condition
+        // t2 = t1
+    });
+})
+```
+</details>
+
+<details>
+<summary><b>With a custom condition - value</b></summary>
+ 
+```js
+db.taskIf({cnd: false}, t1 => {
+    // new task is created, i.e. option cnd is ignored here,
+    // because the task is required on the top level
+    return t1.taskIf({cnd: true}, t2 => {
+        // new task created, because we specified that we want one;
+        // t2 != t1
+    });
+})
+```
+</details>
+
+<details>
+<summary><b>With a custom condition - callback</b></summary>
+ 
+```js
+const cnd = c => {
+    // c.ctx - task/tx context (not available on the top level)
+    // default condition: return !c.ctx;
+    return someValue;
+};
+
+db.taskIf({cnd}, t1 => {
+    // new task is always created, because it is required on the top level
+    return t1.taskIf({cnd}, t2 => {
+        // if someValue is truthy, a new task is created (t2 != t1);
+        // otherwise, we continue with the containing task (t2 = t1).
+    });
+})
+```
+</details>
 
 ## Transactions
 
-A transaction is a special type of task that automatically executes `BEGIN` + `COMMIT`/`ROLLBACK`:
-
-1. Acquires a new connection;
-2. Executes `BEGIN` command;
-3. Invokes your callback function (or generator) with the connection object;
-4. Executes `COMMIT`, if the callback resolves, or `ROLLBACK`, if the callback rejects or throws an error;
-5. Releases the connection (detached chains only);
-6. Resolves with the callback result, if successful; rejects with the reason when fails.
+Transaction method [tx] is like [task], which also executes `BEGIN` + `COMMIT`/`ROLLBACK`:
 
 ```js
 db.tx(t => {
     // creating a sequence of transaction queries:
-    var q1 = t.none('UPDATE users SET active=$1 WHERE id=$2', [true, 123]);
-    var q2 = t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id',
-        ['users', 123]);
+    const q1 = t.none('UPDATE users SET active = $1 WHERE id = $2', [true, 123]);
+    const q2 = t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id', ['users', 123]);
 
     // returning a promise that determines a successful transaction:
     return t.batch([q1, q2]); // all of the queries are to be resolved;
 })
     .then(data => {
-        console.log(data); // printing successful transaction output;
+        // success, COMMIT was executed
     })
     .catch(error => {
-        console.log(error); // printing the error;
+        // failure, ROLLBACK was executed
     });
 ```
 
-A detached transaction acquires a connection and exposes object `t`=`this` to let all containing queries
-execute on the same connection.
+If the callback function returns a rejected promise or throws an error, the method will automatically execute `ROLLBACK` at the end. 
+In all other cases the transaction will be automatically closed by `COMMIT`.
+
+The same as tasks, transactions support [Tags], ES6 generators and ES7 async:
+
+<details>
+<summary><b>With ES6 generator</b></summary>
+
+```js
+db.tx(function * (t) {
+    yield t.none('UPDATE users SET active = $1 WHERE id = $2', [true, 123]);
+    yield t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id', ['users', 123]);
+})
+    .then(data => {
+        // success, COMMIT was executed
+    })
+    .catch(error => {
+        // failure, ROLLBACK was executed
+    });
+```
+
+</details>
+
+<details>
+<summary><b>With ES6 generator + tag</b></summary>
+
+```js
+db.tx('update-user', function * (t) {
+    yield t.none('UPDATE users SET active = $1 WHERE id = $2', [true, 123]);
+    yield t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id', ['users', 123]);
+})
+    .then(data => {
+        // success, COMMIT was executed
+    })
+    .catch(error => {
+        // failure, ROLLBACK was executed
+    });
+```
+
+</details>
+
+<details>
+<summary><b>With ES7 async</b></summary>
+
+```js
+db.tx(async t => {
+    await t.none('UPDATE users SET active = $1 WHERE id = $2', [true, 123]);
+    await t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id', ['users', 123]);
+})
+    .then(data => {
+        // success, COMMIT was executed
+    })
+    .catch(error => {
+        // failure, ROLLBACK was executed
+    });
+```
+
+</details>
+
+<details>
+<summary><b>With ES7 async + tag</b></summary>
+
+```js
+db.tx('update-user', async t => {
+    await t.none('UPDATE users SET active = $1 WHERE id = $2', [true, 123]);
+    await t.one('INSERT INTO audit(entity, id) VALUES($1, $2) RETURNING id', ['users', 123]);
+})
+    .then(data => {
+        // success, COMMIT was executed
+    })
+    .catch(error => {
+        // failure, ROLLBACK was executed
+    });
+```
+
+</details>
 
 ### Nested Transactions
 
 Nested transactions automatically share the connection between all levels.
 This library sets no limitation as to the depth (nesting levels) of transactions supported.
 
-Example:
+<details>
+<summary><b>Example</b></summary>
 
 ```js
 db.tx(t => {
-    var queries = [
+    const queries = [
         t.none('DROP TABLE users;'),
         t.none('CREATE TABLE users(id SERIAL NOT NULL, name TEXT NOT NULL)')
     ];
-    for (var i = 1; i <= 100; i++) {
+    for (let i = 1; i <= 100; i++) {
         queries.push(t.none('INSERT INTO users(name) VALUES($1)', 'name-' + i));
     }
     queries.push(
@@ -639,286 +926,259 @@ db.tx(t => {
     return t.batch(queries);
 })
     .then(data => {
-        console.log(data); // printing transaction result;
+        // success
     })
     .catch(error => {
-        console.log(error); // printing the error;
+        // failure
     });
 ```
+</details>
+<br/>
 
-### Limitations
+If you want to avoid automatic occurrence of nested transactions, see [Conditional Transactions].
 
-It is important to know that PostgreSQL doesn't have proper support for nested transactions, it only
-supports *partial rollbacks* via [savepoints](http://www.postgresql.org/docs/9.4/static/sql-savepoint.html) inside transactions.
-The difference between the two techniques is huge, as explained further.
+#### Limitations
 
-Proper support for nested transactions means that the result of a successful sub-transaction isn't rolled back
-when its parent transaction is rolled back. But with PostgreSQL save-points, if you roll-back the top-level
-transaction, the result of all inner save-points is also rolled back.
+It is important to know that PostgreSQL does not support full/atomic nested transactions, it only
+supports [savepoints](http://www.postgresql.org/docs/9.6/static/sql-savepoint.html) inside top-level
+transactions, to allow *partial rollbacks*.
 
-Save-points are only good for *partial rollbacks*, i.e. you can roll-back results of sub-transactions, with
-yet successful *commit* for the top-level transaction. Using promises it is easy to construct your transaction
-so it would utilize that logic. This library automatically provides a transaction on the top level, and
-save-points for all sub-transactions.
+Postgres uses `BEGIN` with `COMMIT / ROLLBACK` for top-level transactions, and `SAVEPOINT name`
+with `RELEASE / ROLLBACK TO name` for inner save-points.
 
-### Synchronous Transactions
-
-A regular task/transaction with a set of independent queries relies on method [batch] to resolve
-all queries asynchronously.
-
-However, when it comes to executing a significant number of queries during a bulk `INSERT` or `UPDATE`,
-such approach is no longer practical. For one thing, it implies that all requests have been created as promise objects,
-which isn't possible when dealing with a huge number of queries, due to memory limitations imposed by NodeJS.
-And for another, when one query fails, the rest will continue trying to execute, due to their promise nature,
-as being asynchronous.
-
-This is why within each task/transaction we have method [sequence], to be able to execute a strict
-sequence of queries one by one, and if one fails - the rest won't try to execute.
-
-```js
-function source(index, data, delay) {
-    // must create and return a promise object dynamically,
-    // based on the index of the sequence;
-    switch (index) {
-        case 0:
-            return this.query('SELECT 0');
-        case 1:
-            return this.query('SELECT 1');
-        case 2:
-            return this.query('SELECT 2');
-    }
-    // returning or resolving with undefined ends the sequence;
-    // throwing an error will result in a reject;
-}
-
-db.tx(t => {
-    return t.sequence(source);
-})
-    .then(data => {
-        console.log(data); // print result;
-    })
-    .catch(error => {
-        console.log(error); // print the error;
-    });
-```
-
-Sequence is based on implementation of [spex.sequence].
+This library automatically executes all such transaction and savepoint commands, with unique
+savepoint names, based on the transaction level.
 
 ### Configurable Transactions
 
-In order to be able to fine-tune database requests in a highly asynchronous environment,
-PostgreSQL supports *Transaction Snapshots*, plus 3 ways of configuring a transaction:
-
-* [SET TRANSACTION](http://www.postgresql.org/docs/9.4/static/sql-set-transaction.html), to configure the current transaction,
-which your can execute as the very first query in your transaction function;
-* `SET SESSION CHARACTERISTICS AS TRANSACTION` - setting default transaction properties for the entire session; 
-* [BEGIN](http://www.postgresql.org/docs/9.4/static/sql-begin.html) + `Transaction Mode` - initiates a pre-configured transaction.
-
-The first method is quite usable, but that means you have to start every transaction with
-an initial query to configure the transaction, which can be a bit awkward.
-
-The second approach isn't very usable within a database framework as this one, which relies
-on a connection pool, so you don't really know when a new connection is created.
-
-The last method is not usable, because transactions in this library are automatic, executing `BEGIN`
-without your control, or so it was until [Transaction Mode] type was added (read further).
-
----  
-
-[Transaction Mode] extends the `BEGIN` command in your transaction with a complete set of configuration parameters.
+[TransactionMode] type can extend your `BEGIN` command with transaction configuration:
 
 ```js
-var TransactionMode = pgp.txMode.TransactionMode;
-var isolationLevel = pgp.txMode.isolationLevel;
+const TransactionMode = pgp.txMode.TransactionMode;
+const isolationLevel = pgp.txMode.isolationLevel;
  
 // Create a reusable transaction mode (serializable + read-only + deferrable):
-var tmSRD = new TransactionMode({
+const mode = new TransactionMode({
     tiLevel: isolationLevel.serializable,
     readOnly: true,
     deferrable: true
 });
 
-function myTransaction() {
-    return this.query('SELECT * FROM table');
-}
-
-myTransaction.txMode = tmSRD; // assign transaction mode;
-
-db.tx(myTransaction)
+db.tx({mode}, t => {
+    // do transaction queries here
+})
     .then(() => {
         // success;
+    })
+    .catch(error => {
+        // failure    
     });
 ```
 
-Instead of the default `BEGIN`, such transaction will initiate with the following command:
+Instead of the default `BEGIN`, such transaction will open with the following command:
 ```
 BEGIN ISOLATION LEVEL SERIALIZABLE READ ONLY DEFERRABLE
 ```
 
-Transaction Mode is set via property `txMode` on the transaction function.
+_Transaction Mode_ is set via option `mode`, preceding the callback function. See methods [tx] and [txIf].
 
 This is the most efficient and best-performing way of configuring transactions. In combination with
 *Transaction Snapshots* you can make the most out of transactions in terms of performance and concurrency.
 
-## Generators
+### Conditional Transactions
 
-If you prefer writing asynchronous code in a synchronous manner, you can implement your tasks and transactions as generators. 
+Method [txIf] executes a transaction / [tx] when a specified condition is met, or else it executes a [task]. 
 
+When no condition is specified, the default is to start a transaction, if currently not in one, or else it starts a task.
+It is useful when you want to avoid [Nested Transactions] - savepoints.
+
+<details>
+<summary><b>With default condition</b></summary>
+ 
 ```js
-function * getUser(t) {
-    let user = yield t.oneOrNone('SELECT * FROM users WHERE id = $1', 123);
-    return yield user || t.one('INSERT INTO users(name) VALUES($1) RETURNING *', 'John');
-}
-
-db.task(getUser)
-    .then(user => {
-        // success;
-    })
-    .catch(error => {
-        // error;
+db.txIf(t => {
+    // transaction is started, as the top level doesn't have one
+    return t.txIf(t2 => {
+        // a task is started, because there is a parent transaction        
     });
+})
 ```
+</details>
 
-The library verifies whether the callback function is a generator, and executes it accordingly.
-
-# Advanced
-
-## Initialization Options
-
-When initializing the library, you can pass object `options` with a set of global properties.
-See [API / options](http://vitaly-t.github.io/pg-promise/module-pg-promise.html) for complete list of supported options.
-
----
-#### pgFormatting
-
-By default, **pg-promise** provides its own implementation of the query formatting,
-as explained in [Queries and Parameters](#queries-and-parameters).
-
-If, however, you want your queries formatted by the [PG] library, set parameter `pgFormatting`
-to be `true` when initializing the library, and every query formatting will redirect to the [PG]'s implementation.
-
-Although this has a huge implication to the library's functionality, it is not within the scope of this project to detail.
-For any further reference you should use documentation of the [PG] library.
-
-Below is just some of the query-formatting features implemented by [pg-promise] that are not in [node-postgres]:
-
-* [Custom Type Formatting](#custom-type-formatting)
-* Single-value formatting: [pg-promise] doesn't require use of an array when passing a single value;
-* [Raw-Text](https://github.com/vitaly-t/pg-promise/wiki/Learn-by-Example#raw-text) support: injecting raw/pre-formatted text values into the query;
-* Functions as formatting parameters, with the actual values returned from the callbacks;
-* [PostgreSQL Array Constructors](http://www.postgresql.org/docs/9.1/static/arrays.html#ARRAYS-INPUT) are used when formatting arrays,
-not the old string syntax;
-* Automatic conversion of numeric `NaN`, `+Infinity` and `-Infinity` into their string presentation;
-* Support for [this reference](#this-reference);
-* Automatic [QueryFile] support
-
-**NOTE:** Formatting parameters for calling functions (methods `func` and `proc`) is not affected by this override.
-When needed, use the generic [query] instead to invoke functions with redirected query formatting.
-
----
-#### promiseLib
-
-By default, **pg-promise** uses ES6 Promise. If your version of NodeJS doesn't support ES6 Promise,
-or you want a different promise library to be used, set this property to the library's instance.
-
-Example of switching over to [Bluebird]:
+<details>
+<summary><b>With a custom condition - value</b></summary>
 
 ```js
-var promise = require('bluebird');
-var options = {
-    promiseLib: promise
-};
-var pgp = require('pg-promise')(options);
+db.txIf({cnd: someValue}, t => {
+    // if condition is truthy, a transaction is started
+    return t.txIf(t2 => {
+        // a task is started, if the parent is a transaction
+        // a transaction is started, if the parent is a task
+    });
+})
 ```
+</details>
 
-[Promises/A+] libraries that implement a recognizable promise signature and work automatically:
+<details>
+<summary><b>With a custom condition - callback</b></summary>
 
-* **ES6 Promise** - used by default, though it doesn't have `done()` or `finally()`.
-* [Bluebird] - best alternative all around;
-* [Promise] - very solid library;
-* [When] - quite old, not the best support;
-* [Q] - most widely used;
-* [RSVP] - doesn't have `done()`, use `finally/catch` instead
-* [Lie] - doesn't have `done()`. 
+```js
+const cnd = c => {
+    // c.ctx - task/transaction context (not available on the top level)
+    // default condition: return !c.ctx || !c.ctx.inTransaction;
+    return someValue;
+};
 
-If you pass in a library that doesn't implement a recognizable promise signature, **pg-promise** will
-throw error `Invalid promise library specified.` during initialization.
-
-For such libraries you can use [Promise Adapter] to make them compatible with **pg-promise**,
-mostly needed by smaller and simplified [Conformant Implementations](https://promisesaplus.com/implementations). 
+db.txIf({cnd}, t => {
+    // if condition is truthy, a transaction is started
+    return t.txIf(t2 => {
+        // a task is started, if the parent is a transaction
+        // a transaction is started, if the parent is a task
+    });
+})
+```
+</details>
 
 ## Library de-initialization
 
-When exiting your application, you can optionally call [pgp.end]:
+This library manages all database connections via the [connection pool], which internally caches them.
+
+Connections in the cache expire due to inactivity after [idleTimeoutMillis] number of milliseconds, which you
+can adjust when creating the [Database] object, or override the default via `pgp.pg.defaults.idleTimeoutMillis`
+before creating the [Database] object. 
+
+While there is a single open connection in the pool, the process cannot terminate by itself, only via `process.exit()`. 
+If you want the process to finish by itself, without waiting for all connections in the pool to expire, you need
+to force the pool to shut down all the connections it holds:
 
 ```js
-pgp.end(); // terminate the database connection pool
+db.$pool.end(); // shuts down the connection pool associated with the Database object
+``` 
+
+For example, if you are using the [Bluebird] library, you can chain the last promise in the process like this:
+
+```js
+.finally(db.$pool.end);
+``` 
+
+**IMPORTANT:** Note that if your app is an HTTP service, or generally an application that does not feature any exit point,
+then you should not do any de-initialization at all. It is only if your app is a run-through process/utility, then you
+might want to use it, so the process ends without delays.  
+
+In applications that either use multiple databases or execute a multi-pool strategy for balanced query loads, you would end up
+with multiple [Database] objects, each with its own connection pool. In this scenario, in order to exit the process normally,
+at a particular point, you can call [pgp.end] to shut down all connection pools at once:
+
+```js
+pgp.end(); // shuts down all connection pools created in the process
 ```
 
-This will release [pg] connection pool globally and make sure that the process terminates without any delay.
-If you do not call it, your process may be waiting for 30 seconds (default for [poolIdleTimeout](https://github.com/brianc/node-postgres/blob/master/lib/defaults.js#L44)),
-waiting for the connection to expire in the pool.
+or promise-chained to the last query block in the process:
 
-If, however you normally exit your application by killing the NodeJS process, then you don't need to use it.
+```js
+.finally(pgp.end);
+``` 
 
+Once you have shut down the pool associated with your [Database] object, you can no longer use the object, and any of its query methods
+will be rejecting with [Error] = `Connection pool of the database object has been destroyed`.
+
+See the relevant API: [pgp.end], [Database.$pool]
+ 
 # History
 
-For the list of all changes see the [history log](history.md).
+Although this project formally maintains a [CHANGELOG], for a short list of the top-level changes,
+for detailed changes between versions you should see the corresponding release notes.
 
-# License
+<!-- Internal Menu Links -->
 
-Copyright (c) 2017 Vitaly Tomilov (vitaly.tomilov@gmail.com)
+[Usage]:#usage
+[Index Variables]:#index-variables  
+[Named Parameters]:#named-parameters
+[Nested Named Parameters]:#nested-named-parameters
+[SQL Names]:#sql-names
+[Raw Text]:#raw-text
+[Open Values]:#open-values
+[Alias Filter]:#alias-filter
+[JSON Filter]:#json-filter
+[CSV Filter]:#csv-filter
+[Custom Type Formatting]:#custom-type-formatting
+[Explicit CTF]:#explicit-ctf
+[Symbolic CTF]:#symbolic-ctf
+[Tasks]:#tasks    
+[Transactions]:#transactions
+[Nested Transactions]:#nested-transactions    
+[Limitations]:#limitations   
+[Configurable Transactions]:#configurable-transactions
+[Conditional Tasks]:#conditional-tasks
+[Conditional Transactions]:#conditional-transactions  
+[Library de-initialization]:#library-de-initialization
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+<!-- Internal Page Links -->
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+[Contribution Notes]:.github/CONTRIBUTING.md
+[CHANGELOG]:.github/CHANGELOG.md
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
+<!-- Database Method Links -->
 
-[Configuration Object]:https://github.com/vitaly-t/pg-promise/wiki/Connection-Syntax#configuration-object
-[Connection String]:https://github.com/vitaly-t/pg-promise/wiki/Connection-Syntax#connection-string
-[query]:http://vitaly-t.github.io/pg-promise/Database.html#.query
-[each]:http://vitaly-t.github.io/pg-promise/Database.html#.each
-[map]:http://vitaly-t.github.io/pg-promise/Database.html#.map
-[Connection Syntax]:https://github.com/vitaly-t/pg-promise/wiki/Connection-Syntax
+[query]:http://vitaly-t.github.io/pg-promise/Database.html#query
+[none]:http://vitaly-t.github.io/pg-promise/Database.html#none
+[one]:http://vitaly-t.github.io/pg-promise/Database.html#one
+[oneOrNone]:http://vitaly-t.github.io/pg-promise/Database.html#oneOrNone
+[many]:http://vitaly-t.github.io/pg-promise/Database.html#many
+[manyOrNone]:http://vitaly-t.github.io/pg-promise/Database.html#manyOrNone
+[any]:http://vitaly-t.github.io/pg-promise/Database.html#any
+[result]:http://vitaly-t.github.io/pg-promise/Database.html#result
+[multi]:http://vitaly-t.github.io/pg-promise/Database.html#multi
+[multiResult]:http://vitaly-t.github.io/pg-promise/Database.html#multiResult
+[map]:http://vitaly-t.github.io/pg-promise/Database.html#map
+[each]:http://vitaly-t.github.io/pg-promise/Database.html#each
+[func]:http://vitaly-t.github.io/pg-promise/Database.html#func
+[proc]:http://vitaly-t.github.io/pg-promise/Database.html#proc
+[stream]:http://vitaly-t.github.io/pg-promise/Database.html#stream
+[connect]:http://vitaly-t.github.io/pg-promise/Database.html#connect
+[task]:http://vitaly-t.github.io/pg-promise/Database.html#task
+[taskIf]:http://vitaly-t.github.io/pg-promise/Database.html#taskIf
+[tx]:http://vitaly-t.github.io/pg-promise/Database.html#tx
+[txIf]:http://vitaly-t.github.io/pg-promise/Database.html#txIf
+[batch]:http://vitaly-t.github.io/pg-promise/Task.html#batch
+[sequence]:http://vitaly-t.github.io/pg-promise/Task.html#sequence
+[page]:http://vitaly-t.github.io/pg-promise/Task.html#page
+[extend]:http://vitaly-t.github.io/pg-promise/global.html#event:extend
+
+<!-- API Links -->
+
+[Official Documentation]:http://vitaly-t.github.io/pg-promise/index.html
+[Initialization Options]:http://vitaly-t.github.io/pg-promise/module-pg-promise.html
 [helpers]:http://vitaly-t.github.io/pg-promise/helpers.html
 [QueryFile]:http://vitaly-t.github.io/pg-promise/QueryFile.html
-[QueryFileError]:http://vitaly-t.github.io/pg-promise/QueryFileError.html
-[PreparedStatement]:http://vitaly-t.github.io/pg-promise/PreparedStatement.html
-[ParameterizedQuery]:http://vitaly-t.github.io/pg-promise/ParameterizedQuery.html
+[QueryFileError]:http://vitaly-t.github.io/pg-promise/errors.QueryFileError.html
 [Database]:http://vitaly-t.github.io/pg-promise/Database.html
-[QueryResultError]:http://vitaly-t.github.io/pg-promise/QueryResultError.html
-[Native Bindings]:https://github.com/brianc/node-postgres#native-bindings
-[Initialization Options]:#advanced
+[Database.$pool]:http://vitaly-t.github.io/pg-promise/Database.html#$pool
 [pgp.end]:http://vitaly-t.github.io/pg-promise/module-pg-promise.html#~end
-[pgp.as]:http://vitaly-t.github.io/pg-promise/formatting.html
-[as.value]:http://vitaly-t.github.io/pg-promise/formatting.html#.value
+[formatting]:http://vitaly-t.github.io/pg-promise/formatting.html
+[ctf]:http://vitaly-t.github.io/pg-promise/formatting.ctf.html
 [as.format]:http://vitaly-t.github.io/pg-promise/formatting.html#.format
+[format]:http://vitaly-t.github.io/pg-promise/formatting.html#.format
+[as.value]:http://vitaly-t.github.io/pg-promise/formatting.html#.value
+[as.csv]:http://vitaly-t.github.io/pg-promise/formatting.html#.csv
+[as.json]:http://vitaly-t.github.io/pg-promise/formatting.html#.json
 [as.name]:http://vitaly-t.github.io/pg-promise/formatting.html#.name
-[batch]:http://vitaly-t.github.io/pg-promise/Task.html#.batch
-[sequence]:http://vitaly-t.github.io/pg-promise/Task.html#.sequence
-[Protocol API]:http://vitaly-t.github.io/pg-promise/index.html
-[API]:http://vitaly-t.github.io/pg-promise/index.html
-[API Documentation]:http://vitaly-t.github.io/pg-promise/index.html
-[Transaction Mode]:http://vitaly-t.github.io/pg-promise/txMode.TransactionMode.html
-[pg-minify]:https://github.com/vitaly-t/pg-minify
-[pg-monitor]:https://github.com/vitaly-t/pg-monitor
-[pg-promise]:https://github.com/vitaly-t/pg-promise
-[PG]:https://github.com/brianc/node-postgres
-[pg]:https://github.com/brianc/node-postgres
+[as.alias]:http://vitaly-t.github.io/pg-promise/formatting.html#.alias
+[TransactionMode]:http://vitaly-t.github.io/pg-promise/txMode.TransactionMode.html
+
+<!-- WiKi Links -->
+
+[Learn by Example]:https://github.com/vitaly-t/pg-promise/wiki/Learn-by-Example
+[Chaining Queries]:https://github.com/vitaly-t/pg-promise/wiki/Chaining-Queries
+[Tags]:https://github.com/vitaly-t/pg-promise/wiki/Tags
+
+<!-- External Links -->
+
 [node-postgres]:https://github.com/brianc/node-postgres
 [Promises/A+]:https://promisesaplus.com/
-[Promise]:https://github.com/then/promise
 [Bluebird]:https://github.com/petkaantonov/bluebird
-[When]:https://github.com/cujojs/when
-[Q]:https://github.com/kriskowal/q
-[RSVP]:https://github.com/tildeio/rsvp.js
-[Lie]:https://github.com/calvinmetcalf/lie
-[Learn by Example]:https://github.com/vitaly-t/pg-promise/wiki/Learn-by-Example
-[Promise Adapter]:https://github.com/vitaly-t/pg-promise/wiki/Promise-Adapter
-[spex.sequence]:http://vitaly-t.github.io/spex/global.html#sequence
-[Result]:https://github.com/brianc/node-postgres/blob/master/lib/result.js#L6
+[SQL injection]:https://en.wikipedia.org/wiki/SQL_injection
+[Symbol]:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol
+[idleTimeoutMillis]:https://github.com/brianc/node-postgres/blob/master/lib/defaults.js#L46
+[connection pool]:https://github.com/brianc/node-pg-pool
+[Error]:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error

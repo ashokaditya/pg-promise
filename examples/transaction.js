@@ -6,17 +6,17 @@
 // This is to show a complete test application;
 ///////////////////////////////////////////////
 
-var promise = require('bluebird'); // or any other Promise/A+ compatible library;
+const promise = require('bluebird'); // or any other Promise/A+ compatible library;
 
-var options = {
+const initOptions = {
     promiseLib: promise // overriding the default (ES6 Promise);
 };
 
-var pgp = require('pg-promise')(options);
-// See also: https://github.com/vitaly-t/pg-promise#initialization-options
+const pgp = require('pg-promise')(initOptions);
+// See also: http://vitaly-t.github.io/pg-promise/module-pg-promise.html
 
 // Database connection details;
-var cn = {
+const cn = {
     host: 'localhost', // 'localhost' is the default;
     port: 5432, // 5432 is the default;
     database: 'myDatabase',
@@ -26,7 +26,7 @@ var cn = {
 // You can check for all default values in:
 // https://github.com/brianc/node-postgres/blob/master/lib/defaults.js
 
-var db = pgp(cn); // database instance;
+const db = pgp(cn); // database instance;
 
 // NOTE: The default ES6 Promise doesn't have methods `.spread` and `.finally`,
 // but they are available within Bluebird library used here as an example.
@@ -44,15 +44,5 @@ db.tx(t => {
     .catch(error => {
         console.log('ERROR:', error); // print the error;
     })
-    .finally(() => {
-        // If we do not close the connection pool when exiting the application,
-        // it may take 30 seconds (poolIdleTimeout) before the process terminates,
-        // waiting for the connection to expire in the pool.
-
-        // But if you normally just kill the process, then it doesn't matter.
-
-        pgp.end(); // for immediate app exit, closing the connection pool.
-
-        // See also:
-        // https://github.com/vitaly-t/pg-promise#library-de-initialization
-    });
+    .finally(db.$pool.end); // For immediate app exit, shutting down the connection pool
+// For details see: https://github.com/vitaly-t/pg-promise#library-de-initialization

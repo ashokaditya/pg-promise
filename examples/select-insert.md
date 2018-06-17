@@ -18,7 +18,7 @@ a new or existing `id` of the record.
  
 ```js
 function getInsertUserId(name) {
-    return db.task(t => {
+    return db.task('getInsertUserId', t => {
             return t.oneOrNone('SELECT id FROM Users WHERE name = $1', name, u => u && u.id)
                 .then(userId => {
                     return userId || t.one('INSERT INTO Users(name) VALUES($1) RETURNING id', name, u => u.id);
@@ -43,19 +43,19 @@ The same function `getInsertUserId`, using ES6 generators:
 
 ```js
 function getInsertUserId(name) {
-    return db.task(function *(t) {
-        let userId = yield t.oneOrNone('SELECT id FROM Users WHERE name = $1', name, u => u && u.id);
+    return db.task('getInsertUserId', function *(t) {
+        const userId = yield t.oneOrNone('SELECT id FROM Users WHERE name = $1', name, u => u && u.id);
         return yield userId || t.one('INSERT INTO Users(name) VALUES($1) RETURNING id', name, u => u.id);
     });
 }
 ```
 
-The same function `getInsertUserId`, using ES7 async clause:
+The same function `getInsertUserId`, using ES7 async syntax:
 
 ```js
 async function getInsertUserId(name) {
-    return await db.task(async (t) => {
-        let userId = await t.oneOrNone('SELECT id FROM Users WHERE name = $1', name, u => u && u.id);
+    return await db.task('getInsertUserId', async (t) => {
+        const userId = await t.oneOrNone('SELECT id FROM Users WHERE name = $1', name, u => u && u.id);
         return userId || await t.one('INSERT INTO Users(name) VALUES($1) RETURNING id', name, u => u.id);
     });
 }
@@ -63,16 +63,16 @@ async function getInsertUserId(name) {
 
 We recommend one of the following runtimes or transpilers when using the ES7 async clause:
 * Node.js `7.6` or more recent
-* Typescript `2.1` or more recent
+* TypeScript `2.1` or more recent
 * Babel using `babel-preset-es2017` preset or `babel-plugin-transform-async-to-generator` plugin
 
 ## Single-query alternative
 
 It is possible to wrap the whole operation into a single query, which would offer a better
 performance, executing always just one query, and more importantly - proper data integrity,
-by making sure that a parallel request wouldn't try to execute a second `INSERT`. 
+by making sure that a parallel request would not try to execute a second `INSERT`. 
 
-Implementing such a query however isn't trivial, and can vary based on whether it is for
+Implementing such a query however isn't trivial, and it can vary based on whether it is for
 PostgreSQL 9.5+ or an older version of the server.
 
 The following posts will help you get started writing your own single-query solution for this:

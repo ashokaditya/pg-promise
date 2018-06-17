@@ -4,29 +4,32 @@
 
 'use strict';
 
-/*eslint-disable */
+const pgpLib = require('../../lib/index');
+const defPromise = require('bluebird'); // default promise library;
 
-var pgpLib = require('../../lib/index');
-var defPromise = require('bluebird'); // default promise library;
+defPromise.config({
+    warnings: false
+});
 
 // Either match your local database configuration according to the details below,
 // or the other way round - change the details to match your local configuration.
-var cn = {
-    host: 'localhost',  // server name or IP address;
-    port: 5432,         // default port;
+const cn = {
+    host: 'localhost', // server name or IP address;
+    port: 5432, // default port;
     database: 'pg_promise_test', // local database name for testing;
-    user: 'postgres'    // user name;
+    user: 'postgres' // user name;
     // password: - add password, if needed;
 };
 
 pgpLib.suppressErrors = true; // suppress console output for error messages;
 
 function main(options, dc) {
-    var pgNative = eval(process.env.PG_NATIVE);
+    const pgNative = eval(process.env.PG_NATIVE);
     if (pgNative) {
         if (options && typeof options === 'object') {
-            if (!('pgNative' in options))
+            if (!('pgNative' in options)) {
                 options.pgNative = true;
+            }
         } else {
             if (!options) {
                 options = {
@@ -35,12 +38,10 @@ function main(options, dc) {
             }
         }
     }
-    var result = {
-        pgpLib: pgpLib,
-        pgp: pgpLib(options),
-        cn: cn
+    const result = {
+        pgpLib, cn,
+        pgp: pgpLib(options)
     };
-    result.pgp.pg.setMaxListeners(100);
     result.db = result.pgp(cn, dc);
     return result;
 }

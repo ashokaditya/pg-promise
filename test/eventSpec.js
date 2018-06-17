@@ -1,128 +1,137 @@
 'use strict';
 
-/*eslint-disable */
+const QueryStream = require('pg-query-stream');
+const JSONStream = require('JSONStream');
 
-var QueryStream = require('pg-query-stream');
-var JSONStream = require('JSONStream');
+const pgResult = require('pg/lib/result');
+const pgClient = require('pg/lib/client');
 
-var pgResult = require('pg/lib/result');
-var pgClient = require('pg/lib/client');
+const header = require('./db/header');
 
-var header = require('./db/header');
-
-var promise = header.defPromise;
-var options = {
-    promiseLib: promise // use Bluebird for testing;
+const promise = header.defPromise;
+const options = {
+    promiseLib: promise, // use Bluebird for testing;
+    noWarnings: true
 };
 
-var testDC = 'test_DC_123';
+const testDC = 'test_DC_123';
 
-var dbHeader = header(options, testDC);
-var pgp = dbHeader.pgp;
-var db = dbHeader.db;
+const dbHeader = header(options, testDC);
+const pgp = dbHeader.pgp;
+const db = dbHeader.db;
+
+const $text = require('../lib/text');
+
+function isResult(value) {
+    if (options.pgNative) {
+        // Impossible to test, because pg-native fails to export the Result type;
+        // See this issue: https://github.com/brianc/node-pg-native/issues/63
+        // So we are forced to skip the test for now:
+        return true;
+    }
+    return value instanceof pgResult;
+}
 
 // empty function;
-var dummy = function () {
+const dummy = () => {
 };
 
-describe("Connect/Disconnect events", function () {
+describe('Connect/Disconnect events', () => {
 
-    describe("during a query", function () {
-        var p1, p2, dc1, dc2, connect = 0, disconnect = 0;
-        beforeEach(function (done) {
-            options.connect = function (client, dc) {
-                dc1 = dc;
-                p1 = client;
+    describe('during a query', () => {
+        let ctx1 = {}, ctx2 = {}, connect = 0, disconnect = 0;
+        beforeEach(done => {
+            options.connect = (client, dc, useCount) => {
+                ctx1.dc = dc;
+                ctx1.client = client;
+                ctx1.useCount = useCount;
                 connect++;
-                throw new Error("### Testing error output in 'connect'. Please ignore. ###");
+                throw new Error('### Testing error output in \'connect\'. Please ignore. ###');
             };
-            options.disconnect = function (client, dc) {
-                dc2 = dc;
-                p2 = client;
+            options.disconnect = (client, dc) => {
+                ctx2.dc = dc;
+                ctx2.client = client;
                 disconnect++;
-                throw new Error("### Testing error output in 'disconnect'. Please ignore. ###");
+                throw new Error('### Testing error output in \'disconnect\'. Please ignore. ###');
             };
-            db.query("select 'test'")
+            db.query('select \'test\'')
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        afterEach(function () {
+        afterEach(() => {
             options.connect = null;
             options.disconnect = null;
         });
-        it("must be sent correctly", function () {
+        it('must be sent correctly', () => {
             expect(connect).toBe(1);
             expect(disconnect).toBe(1);
             if (!options.pgNative) {
-                expect(p1 instanceof pgClient).toBe(true);
-                expect(p2 instanceof pgClient).toBe(true);
+                expect(ctx1.client instanceof pgClient).toBe(true);
+                expect(ctx2.client instanceof pgClient).toBe(true);
             }
-            expect(dc1).toBe(testDC);
-            expect(dc2).toBe(testDC);
+            expect(ctx1.dc).toBe(testDC);
+            expect(typeof ctx1.useCount).toBe('number');
+            expect(ctx1.useCount >= 0).toBe(true);
+            expect(ctx2.dc).toBe(testDC);
         });
     });
 
-    describe("during a transaction", function () {
-        var p1, p2, dc1, dc2, ctx, connect = 0, disconnect = 0;
-        beforeEach(function (done) {
-            options.connect = function (client, dc) {
-                dc1 = dc;
-                p1 = client;
+    describe('during a transaction', () => {
+        let obj1 = {}, obj2 = {}, ctx, connect = 0, disconnect = 0;
+        beforeEach(done => {
+            options.connect = (client, dc, useCount) => {
+                obj1.dc = dc;
+                obj1.client = client;
+                obj1.useCount = useCount;
                 connect++;
             };
-            options.disconnect = function (client, dc) {
-                dc2 = dc;
-                p2 = client;
+            options.disconnect = (client, dc) => {
+                obj2.client = client;
+                obj2.dc = dc;
                 disconnect++;
             };
             db.tx(function (t) {
                 ctx = t.ctx;
                 return this.batch([
-                    t.query("select 'one'"),
-                    t.query("select 'two'"),
-                    t.query("select 'three'")
+                    t.query('select \'one\''),
+                    t.query('select \'two\''),
+                    t.query('select \'three\'')
                 ]);
             })
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        afterEach(function () {
+        afterEach(() => {
             options.connect = null;
             options.disconnect = null;
         });
-        it("must be sent correctly", function () {
+        it('must be sent correctly', () => {
             expect(connect).toBe(1);
             expect(disconnect).toBe(1);
             if (!options.pgNative) {
-                expect(p1 instanceof pgClient).toBe(true);
-                expect(p2 instanceof pgClient).toBe(true);
+                expect(obj1.client instanceof pgClient).toBe(true);
+                expect(obj2.client instanceof pgClient).toBe(true);
             }
-            expect(dc1).toBe(testDC);
-            expect(dc2).toBe(testDC);
+            expect(obj1.dc).toBe(testDC);
+            expect(obj2.dc).toBe(testDC);
             expect(ctx.dc).toBe(testDC);
         });
     });
 });
 
-describe("Query event", function () {
+describe('Query event', () => {
 
-    describe("positive", function () {
-        var param, counter = 0;
-        beforeEach(function (done) {
-            options.query = function (e) {
+    describe('positive', () => {
+        let param, counter = 0;
+        beforeEach(done => {
+            options.query = e => {
                 counter++;
                 param = e;
             };
-            db.query("select $1", [123])
-                .then(function () {
-                    done();
-                });
+            db.query('select $1', [123])
+                .finally(done);
         });
-        it("must pass query and parameters correctly", function () {
+        it('must pass query and parameters correctly', () => {
             expect(counter).toBe(1);
             expect(param.query).toBe('select 123');
             expect(param.params).toBeUndefined();
@@ -130,52 +139,53 @@ describe("Query event", function () {
         });
     });
 
-    describe("negative, with an error object", function () {
-        var result, errMsg = "Throwing a new Error during 'query' notification.";
-        beforeEach(function (done) {
-            options.query = function () {
+    describe('negative, with an error object', () => {
+        let result;
+        const errMsg = 'Throwing a new Error during \'query\' notification.';
+        beforeEach(done => {
+            options.query = () => {
                 throw new Error(errMsg);
             };
-            db.query("select $1", [123])
-                .catch(function (error) {
+            db.query('select $1', [123])
+                .catch(error => {
                     result = error;
-                    done();
-                });
+                })
+                .finally(done);
         });
-        it("must reject with the right error", function () {
+        it('must reject with the right error', () => {
             expect(result).toEqual(new Error(errMsg));
         });
     });
 
-    describe("negative, with undefined", function () {
-        var result, handled;
-        beforeEach(function (done) {
-            options.query = function () {
+    describe('negative, with undefined', () => {
+        let result, handled;
+        beforeEach(done => {
+            options.query = () => {
                 throw undefined;
             };
-            db.query("select $1", [123])
-                .catch(function (error) {
+            db.query('select $1', [123])
+                .catch(error => {
                     handled = true;
                     result = error;
-                    done();
-                });
+                })
+                .finally(done);
         });
-        it("must reject with undefined", function () {
+        it('must reject with undefined', () => {
             expect(handled).toBe(true);
             expect(result).toBeUndefined();
         });
     });
 
-    afterEach(function () {
+    afterEach(() => {
         delete options.query;
     });
 
 });
 
-describe("Start/Finish transaction events", function () {
-    var result, tag, ctx, e1, e2, start = 0, finish = 0;
-    beforeEach(function (done) {
-        options.transact = function (e) {
+describe('Start/Finish transaction events', () => {
+    let result, tag, ctx, e1, e2, start = 0, finish = 0;
+    beforeEach(done => {
+        options.transact = e => {
             if (e.ctx.finish) {
                 finish++;
                 ctx = e.ctx;
@@ -185,27 +195,25 @@ describe("Start/Finish transaction events", function () {
                 tag = e.ctx.tag;
                 e2 = e;
             }
-            throw "### Testing error output in 'transact'. Please ignore. ###";
+            throw '### Testing error output in \'transact\'. Please ignore. ###';
         };
-        db.tx("myTransaction", function () {
+        db.tx('myTransaction', () => {
             return promise.resolve('SUCCESS');
         })
-            .then(function (data) {
+            .then(data => {
                 result = data;
             })
-            .finally(function () {
-                done();
-            });
+            .finally(done);
     });
-    afterEach(function () {
+    afterEach(() => {
         options.transact = null;
     });
 
-    it("must execute correctly", function () {
+    it('must execute correctly', () => {
         expect(result).toBe('SUCCESS');
         expect(start).toBe(1);
         expect(finish).toBe(1);
-        expect(tag).toBe("myTransaction");
+        expect(tag).toBe('myTransaction');
         expect(ctx.success).toBe(true);
         expect(ctx.isTX).toBe(true);
         expect(ctx.dc).toBe(testDC);
@@ -214,34 +222,32 @@ describe("Start/Finish transaction events", function () {
     });
 });
 
-describe("Error event", function () {
+describe('Error event', () => {
 
-    describe("from transaction callbacks", function () {
-        var r, error, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('from transaction callbacks', () => {
+        let r, error, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 error = err;
                 context = e;
-                throw new Error("### Testing error output in 'error'. Please ignore. ###");
+                throw new Error('### Testing error output in \'error\'. Please ignore. ###');
             };
-            db.tx("Error Transaction", function () {
-                throw new Error("Test Error");
+            db.tx('Error Transaction', () => {
+                throw new Error('Test Error');
             })
-                .then(dummy, function (reason) {
+                .catch(reason => {
                     r = reason;
                 })
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must report errors", function () {
+        it('must report errors', () => {
             expect(r instanceof Error).toBe(true);
             expect(r.message).toBe('Test Error');
             expect(error instanceof Error).toBe(true);
             expect(error.message).toBe('Test Error');
             expect(counter).toBe(1);
-            expect(context.ctx.tag).toBe("Error Transaction");
+            expect(context.ctx.tag).toBe('Error Transaction');
             expect(context.dc).toBe(testDC);
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -249,23 +255,21 @@ describe("Error event", function () {
         });
     });
 
-    describe("for null-queries", function () {
-        var error, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for null-queries', () => {
+        let error, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 error = err;
                 context = e;
             };
             db.query(null)
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must fail correctly", function () {
+        it('must fail correctly', () => {
             expect(error instanceof TypeError).toBe(true);
-            expect(error.message).toBe("Empty or undefined query.");
+            expect(error.message).toBe($text.invalidQuery);
             expect(context.params).toBeUndefined();
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -274,24 +278,22 @@ describe("Error event", function () {
         });
     });
 
-    describe("for incorrect QRM", function () {
-        var error, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for incorrect QRM', () => {
+        let error, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 error = err;
                 context = e;
             };
-            db.query("Bla-Bla", undefined, 42)
+            db.query('Bla-Bla', undefined, 42)
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must reject with correct error", function () {
+        it('must reject with correct error', () => {
             expect(error instanceof TypeError).toBe(true);
-            expect(error.message).toBe("Invalid Query Result Mask specified.");
-            expect(context.query).toBe("Bla-Bla");
+            expect(error.message).toBe('Invalid Query Result Mask specified.');
+            expect(context.query).toBe('Bla-Bla');
             expect(context.params).toBeUndefined();
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -300,24 +302,22 @@ describe("Error event", function () {
         });
     });
 
-    describe("for single-row requests", function () {
-        var errTxt, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for single-row requests', () => {
+        let errTxt, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 errTxt = err;
                 context = e;
             };
-            db.one("select * from users")
+            db.one('select * from users')
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must reject with correct error", function () {
+        it('must reject with correct error', () => {
             expect(errTxt instanceof pgp.errors.QueryResultError).toBe(true);
-            expect(errTxt.message).toBe("Multiple rows were not expected.");
-            expect(context.query).toBe("select * from users");
+            expect(errTxt.message).toBe('Multiple rows were not expected.');
+            expect(context.query).toBe('select * from users');
             expect(context.params).toBeUndefined();
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -326,24 +326,22 @@ describe("Error event", function () {
         });
     });
 
-    describe("for no-row requests", function () {
-        var errTxt, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for no-row requests', () => {
+        let errTxt, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 errTxt = err;
                 context = e;
             };
-            db.none("select * from users")
+            db.none('select * from users')
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must reject with correct error", function () {
+        it('must reject with correct error', () => {
             expect(errTxt instanceof pgp.errors.QueryResultError).toBe(true);
-            expect(errTxt.message).toBe("No return data was expected.");
-            expect(context.query).toBe("select * from users");
+            expect(errTxt.message).toBe($text.notEmpty);
+            expect(context.query).toBe('select * from users');
             expect(context.params).toBeUndefined();
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -352,24 +350,22 @@ describe("Error event", function () {
         });
     });
 
-    describe("for empty requests", function () {
-        var errTxt, context, counter = 0;
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for empty requests', () => {
+        let errTxt, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 errTxt = err;
                 context = e;
             };
-            db.many("select * from users where id > $1", 1000)
+            db.many('select * from users where id > $1', 1000)
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must reject with correct error", function () {
+        it('must reject with correct error', () => {
             expect(errTxt instanceof pgp.errors.QueryResultError).toBe(true);
-            expect(errTxt.message).toBe("No data returned from the query.");
-            expect(context.query).toBe("select * from users where id > 1000");
+            expect(errTxt.message).toBe('No data returned from the query.');
+            expect(context.query).toBe('select * from users where id > 1000');
             expect(context.params).toBeUndefined();
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -378,38 +374,36 @@ describe("Error event", function () {
         });
     });
 
-    describe("for loose query requests", function () {
-        var error, r, context, counter = 0, msg = "Loose request outside an expired connection.";
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for loose query requests', () => {
+        let error, r, context, counter = 0;
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 error = err;
                 context = e;
             };
-            var query, sco;
+            let query, sco;
             db.connect()
-                .then(function (obj) {
+                .then(obj => {
                     sco = obj;
-                    query = sco.query("select * from users where($1)", false);
+                    query = sco.query('select * from users where($1)', false);
                     return null;
                 })
-                .finally(function () {
+                .finally(() => {
                     sco.done();
                     query
-                        .then(dummy, function (reason) {
+                        .catch(reason => {
                             r = reason;
                         })
-                        .finally(function () {
-                            done();
-                        });
+                        .finally(done);
                 });
         });
-        it("must notify with correct error", function () {
+        it('must notify with correct error', () => {
             expect(error instanceof Error).toBe(true);
-            expect(error.message).toBe(msg);
+            expect(error.message).toBe($text.looseQuery);
             expect(r instanceof Error).toBe(true);
-            expect(r.message).toBe(msg);
-            expect(context.query).toBe("select * from users where(false)");
+            expect(r.message).toBe($text.looseQuery);
+            expect(context.query).toBe('select * from users where(false)');
             expect(context.client).toBeUndefined();
             expect(context.params).toBeUndefined();
             expect(counter).toBe(1);
@@ -417,66 +411,48 @@ describe("Error event", function () {
     });
 
     if (!options.pgNative) {
-        describe("for loose stream requests", function () {
-            var error, r, context, counter = 0, msg = "Loose request outside an expired connection.";
-            beforeEach(function (done) {
-                options.error = function (err, e) {
-                    counter++;
-                    error = err;
-                    context = e;
-                };
-                var query, sco;
-                var qs = new QueryStream("select $1::int", [123]);
+        describe('for loose stream requests', () => {
+            let r, sco;
+            beforeEach(done => {
+                const qs = new QueryStream('select * from users');
                 db.connect()
-                    .then(function (obj) {
+                    .then(obj => {
                         sco = obj;
-                        query = sco.stream(qs, function (s) {
+                        return sco.stream(qs, s => {
                             s.pipe(JSONStream.stringify());
+                            obj.done();
+                            throw new Error('Something went wrong here');
                         });
-                        return null;
                     })
-                    .finally(function () {
-                        sco.done();
-                        query
-                            .then(dummy, function (reason) {
-                                r = reason;
-                            })
-                            .finally(function () {
-                                done();
-                            });
-                    });
+                    .catch(reason => {
+                        r = reason;
+                    })
+                    .finally(done);
             });
-            it("must notify with correct error", function () {
-                expect(error instanceof Error).toBe(true);
+            it('must notify with correct error', () => {
                 expect(r instanceof Error).toBe(true);
-                expect(error.message).toBe(msg);
-                expect(r.message).toBe(msg);
-                expect(context.query).toBe("select $1::int");
-                expect(context.client).toBeUndefined();
-                expect(context.params).toEqual(['123']);
-                expect(counter).toBe(1);
+                expect(r.message).toBe($text.looseQuery);
             });
         });
     }
 
-    describe("for invalid parameters", function () {
-        var error, context, counter = 0, params = {};
-        beforeEach(function (done) {
-            options.error = function (err, e) {
+    describe('for invalid parameters', () => {
+        let error, context, counter = 0;
+        const params = {};
+        beforeEach(done => {
+            options.error = (err, e) => {
                 counter++;
                 error = err;
                 context = e;
             };
-            db.query("${test}", params)
+            db.query('${test}', params)
                 .then(dummy, dummy)
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must report the parameters correctly", function () {
+        it('must report the parameters correctly', () => {
             expect(error instanceof Error).toBe(true);
-            expect(error.message).toBe("Property 'test' doesn't exist.");
-            expect(context.query).toBe("${test}");
+            expect(error.message).toBe('Property \'test\' doesn\'t exist.');
+            expect(context.query).toBe('${test}');
             expect(context.params).toBe(params);
             if (!options.pgNative) {
                 expect(context.client instanceof pgClient).toBe(true);
@@ -485,29 +461,27 @@ describe("Error event", function () {
         });
     });
 
-    afterEach(function () {
+    afterEach(() => {
         delete options.error;
     });
 
 });
 
-describe("Receive event", function () {
+describe('Receive event', () => {
 
-    describe("query positive", function () {
-        var ctx, data, res, counter = 0;
-        beforeEach(function (done) {
-            options.receive = function (d, r, e) {
+    describe('query positive', () => {
+        let ctx, data, res, counter = 0;
+        beforeEach(done => {
+            options.receive = (d, r, e) => {
                 counter++;
                 data = d;
                 res = r;
                 ctx = e;
             };
-            db.one("select $1 as value", [123])
-                .then(function () {
-                    done();
-                });
+            db.one('select $1 as value', [123])
+                .finally(done);
         });
-        it("must pass in correct data and context", function () {
+        it('must pass in correct data and context', () => {
             expect(counter).toBe(1);
             expect(ctx.query).toBe('select 123 as value');
             expect(ctx.params).toBeUndefined();
@@ -515,43 +489,101 @@ describe("Receive event", function () {
             expect(data).toEqual([{
                 value: 123
             }]);
-            if (!options.pgNative) {
-                expect(res instanceof pgResult).toBe(true);
-            }
+            expect(isResult(res)).toBe(true);
+            expect(typeof res.duration).toBe('number');
         });
     });
 
-    describe("query negative", function () {
-        var result, error = new Error("ops!");
-        beforeEach(function (done) {
-            options.receive = function () {
-                throw error;
+    describe('for empty queries', () => {
+        let ctx, data, res, counter = 0;
+        beforeEach(done => {
+            options.receive = function (d, r, e) {
+                counter++;
+                data = d;
+                res = r;
+                ctx = e;
             };
-            db.one("select $1 as value", [123])
-                .catch(function (reason) {
-                    result = reason;
+            db.none('delete from users where id = $1', 1234567890)
+                .finally(done);
+        });
+        it('must pass in correct empty data and context', () => {
+            expect(counter).toBe(1);
+            expect(ctx.query).toBe('delete from users where id = 1234567890');
+            expect(ctx.params).toBeUndefined();
+            expect(ctx.dc).toBe(testDC);
+            expect(data).toEqual([]);
+            expect(isResult(res)).toBe(true);
+            expect(typeof res.duration).toBe('number');
+        });
+    });
+
+    describe('positive for multi-queries', () => {
+        const data = [];
+        beforeEach(done => {
+            options.receive = (d, r, e) => {
+                data.push({d, r, e});
+            };
+            db.multiResult('select 1 as one;select 2 as two')
+                .then(() => {
                     done();
                 });
         });
-        it("must reject with the right error", function () {
+        it('must send the event for each result', () => {
+            expect(data.length).toBe(2);
+            expect(data[0].d).toEqual([{one: 1}]);
+            expect(data[1].d).toEqual([{two: 2}]);
+        });
+    });
+
+    describe('negative for multi-queries', () => {
+        let result;
+        beforeEach(done => {
+            options.receive = () => {
+                throw new Error('Ops!');
+            };
+            db.multiResult('select 1 as one;select 2 as two')
+                .catch(error => {
+                    result = error;
+                })
+                .finally(done);
+        });
+        it('must reject with the error', () => {
+            expect(result instanceof Error).toBe(true);
+        });
+    });
+
+    describe('query negative', () => {
+        let result;
+        const error = 'ops!';
+        beforeEach(done => {
+            options.receive = () => {
+                throw error;
+            };
+            db.one('select $1 as value', [123])
+                .catch(reason => {
+                    result = reason;
+                })
+                .finally(done);
+        });
+        it('must reject with the right error', () => {
             expect(result).toBe(error);
         });
     });
 
-    describe("query negative, undefined", function () {
-        var result, handled;
-        beforeEach(function (done) {
-            options.receive = function () {
+    describe('query negative, undefined', () => {
+        let result, handled;
+        beforeEach(done => {
+            options.receive = () => {
                 throw undefined;
             };
-            db.one("select $1 as value", [123])
-                .catch(function (error) {
+            db.one('select $1 as value', [123])
+                .catch(error => {
                     handled = true;
                     result = error;
-                    done();
-                });
+                })
+                .finally(done);
         });
-        it("must reject with undefined", function () {
+        it('must reject with undefined', () => {
             expect(handled).toBe(true);
             expect(result).toBeUndefined();
         });
@@ -560,24 +592,24 @@ describe("Receive event", function () {
     if (!options.pgNative) {
         // Cannot test streams against native bindings;
 
-        describe("stream positive", function () {
-            var ctx, data, res, counter = 0;
-            beforeEach(function (done) {
-                options.receive = function (d, r, e) {
+        describe('stream positive', () => {
+            let ctx, data, res, counter = 0;
+            beforeEach(done => {
+                options.receive = (d, r, e) => {
                     counter++;
                     data = d;
                     res = r;
                     ctx = e;
                 };
-                var qs = new QueryStream("select $1::int as value", [123]);
-                db.stream(qs, function (s) {
+                const qs = new QueryStream('select $1::int as value', [123]);
+                db.stream(qs, s => {
                     s.pipe(JSONStream.stringify());
                 })
-                    .then(function () {
+                    .then(() => {
                         done();
                     });
             });
-            it("must pass in correct data and context", function () {
+            it('must pass in correct data and context', () => {
                 expect(counter).toBe(1);
                 expect(ctx.query).toBe('select $1::int as value');
                 expect(ctx.params).toEqual(['123']);
@@ -588,128 +620,120 @@ describe("Receive event", function () {
             });
         });
 
-        describe("stream negative", function () {
-            var result;
-            beforeEach(function (done) {
-                options.receive = function () {
-                    throw "ops!";
+        describe('for paged streaming', () => {
+            let result, counter = 0;
+            beforeEach(done => {
+                options.receive = data => {
+                    counter += data.length;
                 };
-                var qs = new QueryStream("select $1::int as value", [123]);
-                db.stream(qs, function (s) {
+                const qs = new QueryStream('select * from users', [], {batchSize: 2});
+                db.stream(qs, s => {
                     s.pipe(JSONStream.stringify());
                 })
-                    .catch(function (error) {
-                        result = error;
+                    .then(data => {
+                        result = data;
                         done();
                     });
             });
-            it("must reject with the right error", function () {
-                expect(result).toBe("ops!");
+            it('must get all the rows', () => {
+                expect(counter).toBe(result.processed);
             });
         });
 
-        describe("stream negative, undefined", function () {
-            var result, handled;
-            beforeEach(function (done) {
-                options.receive = function () {
-                    throw undefined;
+        describe('stream negative', () => {
+            let result;
+            const err = new Error('Ops!');
+            beforeEach(done => {
+                options.receive = () => {
+                    throw err;
                 };
-                var qs = new QueryStream("select $1::int as value", [123]);
-                db.stream(qs, function (s) {
+                const qs = new QueryStream('select $1::int as value', [123]);
+                db.stream(qs, s => {
                     s.pipe(JSONStream.stringify());
                 })
-                    .catch(function (error) {
-                        handled = true;
+                    .catch(error => {
                         result = error;
-                        done();
-                    });
+                    })
+                    .finally(done);
             });
-            it("must reject with undefined", function () {
-                expect(handled).toBe(true);
-                expect(result).toBeUndefined();
+            it('must reject with the right error', () => {
+                expect(result).toBe(err);
             });
         });
     }
 
-    afterEach(function () {
+    afterEach(() => {
         delete options.receive;
     });
 
 });
 
-describe("pgFormatting", function () {
-    var result;
-    beforeEach(function () {
+describe('pgFormatting', () => {
+    let result;
+    beforeEach(() => {
         result = undefined;
         options.pgFormatting = true;
     });
-    afterEach(function () {
+    afterEach(() => {
         options.pgFormatting = false;
     });
-    describe("query event", function () {
-        var ctx = [];
-        beforeEach(function (done) {
-            options.query = function (e) {
+    describe('query event', () => {
+        const ctx = [];
+        beforeEach(done => {
+            options.query = e => {
                 ctx.push(e);
             };
             promise.all([
-                db.func("findUser", 1),
-                db.one("select * from users where id=$1", [1])
+                db.func('findUser', [1]),
+                db.one('select * from users where id=$1', [1])
             ])
-                .then(function (data) {
+                .then(data => {
                     result = data;
                 })
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        afterEach(function () {
+        afterEach(() => {
             options.query = null;
         });
-        it("must affect formatting accordingly", function () {
+        it('must affect formatting accordingly', () => {
             expect(Array.isArray(result)).toBe(true);
             expect(ctx.length).toBe(2);
             // params will be passed back only because the formatting
             // is done by PG, and not by pg-promise:
             //
-            // Cannot verify the second parameter because of the bug in pg:
-            // https://github.com/brianc/node-postgres/issues/750
-            // expect(ctx[0].params === 1 && ctx[1].params[0] === 1).toBe(true);
-            expect(ctx[0].params === 1).toBe(true);
+            expect(ctx[0].params).toBeUndefined();
+            expect(ctx[1].params).toEqual([1]);
         });
     });
 
-    describe("empty / null query", function () {
-        var err;
-        beforeEach(function (done) {
+    describe('empty / null query', () => {
+        let err;
+        beforeEach(done => {
             promise.any([
                 db.query(),
                 db.query(''),
                 db.query(null),
                 db.query(0)
             ])
-                .then(function (data) {
-                }, function (reason) {
+                .catch(reason => {
                     err = reason;
                 })
-                .finally(function () {
-                    done();
-                });
+                .finally(done);
         });
-        it("must provide the original pg response", function () {
+        it('must provide the original pg response', () => {
             if (!options.pgNative) {
                 expect(err.length).toBe(4);
-                for (var i = 0; i < 4; i++) {
+                for (let i = 0; i < 4; i++) {
                     expect(err[i] instanceof TypeError).toBe(true);
-                    expect(err[i].message).toBe("Empty or undefined query.");
+                    expect(err[i].message).toBe($text.invalidQuery);
                 }
             }
-        })
+        });
     });
 });
 
 if (jasmine.Runner) {
-    var _finishCallback = jasmine.Runner.prototype.finishCallback;
+    const _finishCallback = jasmine.Runner.prototype.finishCallback;
     jasmine.Runner.prototype.finishCallback = function () {
         // Run the old finishCallback:
         _finishCallback.bind(this)();
